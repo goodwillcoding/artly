@@ -212,7 +212,7 @@ URLs to 2 Debian packages.
 
    .. code-block:: shell
 
-       $ wget -q http://localhost/private.asc -O- \
+       $ wget -q http://localhost/public.asc -O- \
          | sudo apt-key add -
 
          OK
