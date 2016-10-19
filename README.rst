@@ -2,33 +2,36 @@
 Welcome to Artly - Automated Repository Tool
 ############################################
 
-**Artly** is small utility for creating simple signed Debian repositories in an
-from unattended automation setups using GPG and `APTLY <http://aptly.info>`_.
-**Artly** was partly created mainly to work around some pain points that come
-up when using GPGP for repository signing.
+**Artly** is a small utility for creating simple signed Debian repositories
+using unattended automation. This tool was created to work around some pain
+points of using `APTLY repository manager <http://aptly.info>`_ and GPG
+together.
 
 What **Artly** can do for you:
 
-* Take the pain out of generating GPG key(s) and generating those key(s) with
-  reasonable defaults.
-* Create Debian repositories using those key(s) without having to manage GPG
+* Create Debian repositories using GPG keys without having to manage GPG
   keyrings manually.
-* Do everything on command line without prompts so it can be easily used in
-  automation.
-* Create repositories from Debian packages or folder containing on disk and
-  downloaded using ``wget`` utility over HTTP/FTP protocols.
+* Take the pain out of generating GPG keys and keryrings by handling it
+  trasparent to the user and generating the keys with reasonable defaults.
+* Allow you to do everything on the command line without any prompts so it can
+  be easily used in automation.
+* Create repositories from Debian packages located both on disk as well as
+  those that need to be downloaded first over HTTP/FTP protocols.
 
 
 Installation
 ============
 
-Current supported installation is on via git clone of this repository. Only
-tested OS so far has been Ubuntu 12.04 and up but it should work on most Linux
-distributions. You will also need a number of tools such as bash4, find, grep,
-sed and so on. And, of course, you will need to install **APTLY**.
+Currently supported installation of **Artly** is via git clone of this
+repository. **Artly** has only been tested on Ubuntu 12.04 but should work on
+most Linux distributions that have coreutils, bash4.3 and up, findutils,
+grep, sed and few other utilities installed. You will need to install **APTLY
+repository manager**.
+
 
 1. Install **APTLY** using official instructions here:
    https://www.aptly.info/download/
+
 2. Clone the **Artly** repostory
 
    .. code:: shell
@@ -64,7 +67,6 @@ URLs to 2 Debian packages.
        $ mkdir --parents /tmp/artly_demo
        $ cd /tmp/artly_demo
 
-
 2. Use installation instruction above to install **Artly** into the
    ``/tmp/artly_demo/artly`` folder using ``git clone``.
 
@@ -97,18 +99,20 @@ URLs to 2 Debian packages.
 4. Create new GPG keys using **Artly** and place it in ``/tmp/artly_demo/keys``
    folder.
 
-   During the installation the ``haveged`` entropy generation should have being
-   installed and it's service running. Please check that it is running by
-   running the following:
+   .. note::
 
-   .. code-block:: shell
+       During the installation the ``haveged`` entropy generator should have
+       already been installed and started as a service. You can check it by
+       running the following command:
 
-      $ sudo service haveged status
+       .. code-block:: shell
 
-         * haveged is running
+          $ sudo service haveged status
+
+            * haveged is running
 
    Now generate the GPG key using **Artly** with our demo name, comment and
-   email. The key is set to expire after 1yr.
+   email. The key is set to expire after 1 year.
 
    .. code-block:: shell
 
@@ -131,8 +135,8 @@ URLs to 2 Debian packages.
          GPG version: gpg (GnuPG) 1.4.11
 
 
-   You can see your keys here (note the user only read/write permission on the
-   private key file):
+   You can see your keys here (please note the user only has read/write
+   permissions on the private key file):
 
    .. code-block:: shell
 
@@ -144,7 +148,7 @@ URLs to 2 Debian packages.
 
 
 5. Create Debian repository named `artly-demo` with `main` component
-   for `xenial` distribution in ``/tmp/artly_demo/repository``. Sign it with
+   for `xenial` distribution in ``/tmp/artly_demo/repository`` and sign it with
    ``./keys/private.asc`` public key.
 
    .. code-block:: shell
@@ -177,7 +181,7 @@ URLs to 2 Debian packages.
          Repository Package Count   : 7
 
 
-   You can see content of the repository and the private key for it here:
+   You can see content of the repository and the public key here:
 
    .. code-block:: shell
 
@@ -187,12 +191,15 @@ URLs to 2 Debian packages.
          drwxrwxr-x 3 user user 4.0K  pool
          -rw-rw-r-- 1 user user 3.8K  public.asc
 
-6. You can now host that folder on your HTTP server using Apache or Nginx.
-   How to do so is outside of the scope of this demo. Assuming you have now
-   hosted the repository on http://localhost you can add it to any Debian based
-   distribution using following commands:
+6. You can now host the ``/tmp/artly_demo/repository`` folder on using an HTTP
+   server (Apache, Nginx, etc). How to do so is outside of the scope of this
+   demo. Below we will assume you have already hosted and are serving the
+   repository on http://localhost.
 
-   Add ``artly-demo`` repository to your APT sources
+   You can add the hosted repository to any Debian based machine using the
+   following commands:
+
+   Add ``artly-demo`` repository to your APT sources:
 
    .. code-block:: shell
 
@@ -201,7 +208,7 @@ URLs to 2 Debian packages.
 
          deb http://localhost:9000/ xenial main
 
-   Add the repository public key:
+   Add the repository public key to APT keyring:
 
    .. code-block:: shell
 
@@ -210,7 +217,7 @@ URLs to 2 Debian packages.
 
          OK
 
-   Update the package list:
+   Update the local package list:
 
    .. code-block:: shell
 
@@ -220,13 +227,14 @@ URLs to 2 Debian packages.
    command.
 
 
-On Security
-===========
+Security Concerns
+=================
 
-:GPG keys generated by **Artly** are not password protected:
+:Concern GPG keys generated by **Artly** are not password protected:
+
     **Artly** targeted usage is creating repositories using unattended
-    automation. Such automation should take place in relatively controlled and
-    secure  environment. Even if the private key is password protected the
+    automation. Such automation should take place in a relatively controlled
+    and secure environment. Even if the private key is password protected the
     passphrase is likely to be as easily accessed as the private key itself on
     the compromised system.
 
@@ -234,28 +242,45 @@ On Security
     `GPG revoke certificates <https://www.gnupg.org/gph/en/manual/c14.html>`_
     should be used to mitigate issues of a compromised key.
 
-:GPG keys are put in temporary folders when during **Artly** workflow:
-    **Artly** workflow includes creation of keys and keyring in temporary work
-    folders as well as placing keys in the output folders for some of the
-    command (i.e. make-key). The files and folder are created in randomly named
-    folders inside ``/tmp``. To mitigate these concerns **Artly** does the
-    following:
+    .. note::
 
-    1. All GPG work folder and keys permissions are set to 600 as required by
-       GPG itself. Same is true for the output folders where the private keys
-       are placed.
+        This may not be true for systems that use secret management software
+        like `HashiCorp Vault <https://www.vaultproject.io/>`_,
+        `Amazon KMS <https://aws.amazon.com/kms/>`_ or
+        `Square's KeyWiz <https://square.github.io/keywhiz/>`_ and may need to
+        re-adressed.
+
+:**Concern** GPG keys are put in temporary folders during **Artly** workflow:
+    **Artly** workflow includes creation of keys and keyrings which are placed,
+    for a short period of time, in temporary work folders. The work folders are
+    randomly named and created inside ``/tmp`` which is traditionally
+    open to many users and processes.
+
+    Additionally some of **Artly**'s  commands, such as make-key, place keys in
+    the output folders in case of a successful run.
+
+    To mitigate some of these security concerns **Artly** does the following:
+
+    1. All GPG work folders and keys permissions are set to 600 as required by
+       GPG itself. The same is true for private keys place in the output
+       folders.
 
     2. The ``shred`` command is used to destroy all sensitive key and keyring
        files.
 
-    3. **Aptly** provides ``--work-folder`` argument to all commands in case
-       you specify the to avoid creating folders in ``/tmp``.
+    3. **Artly** tries hard to shred and remove work folders in case of both
+       sucessfull and unsuccessful runs unless the ``--debug`` argument is
+       specified.
+
+    3. **Aptly** provides the ``--work-folder`` argument to all commands in
+       case you specify own work folder and avoid creating folders in ``/tmp``.
 
 
 Notes
 =====
 
-Artly is named after APT and APTLY and stands for Automated Repository Tool
+Artly is named after APT and APTLY utilities. It stands for Automated
+Repository Tool.
 
 At present, **Artly** uses ``aptly repo publish`` only to create the repository
-and does not keep any **APTLY** information behind.
+and does not keep any **APTLY** information used during generation.
