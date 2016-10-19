@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+
+# turn on tracing of error, this will bubble up all the error codes
+# basically this allows the ERR trap is inherited by shell functions
+set -o errtrace;
+# turn on quiting on first error
+set -o errexit;
+# error out on undefined variables
+set -o nounset;
+# propagate pipe errors
+set -o pipefail;
+# debugging
+#set -o xtrace;
+
+# get script name
+TMP_SCRIPT_NAME=$(basename "${0}");
+# get full path of the script folder
+TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
+
+
+# ............................................................................ #
+# print script usage
+function usage {
+    echo "\
+Artly - automated repository tool
+
+Usage: ${TMP_SCRIPT_NAME} [OPTIONS] <COMMAND> [COMMAND OPTIONS]
+
+Get help for any given command using: ${TMP_SCRIPT_NAME} <COMMAND> --help
+
+Commands:
+
+    make-key
+        Create GPG key to be used for signing of a repository.
+
+    make-debian-repository
+        Create Debian repository.
+
+    help
+        Print this usage.
+
+Options:
+
+    --ubuntu-packages
+        Print \"apt-get install\" with all packages required by artly.
+
+    -h, --help
+        Print this usage.
+";
+
+}
+
+
+# ............................................................................ #
+# main entry point, checks commands and processes arguments and commands
+# no traps here, since we do not need arror reporting
+# :{1}: command or option to run
+function begin {
+
+    # check for commands we use and error out if they are not found
+    check_commands;
+
+    # process script arguments
+    process_script_commands_and_arguments "$@";
+
+}
+
+
+# ........................................................................... #
+# get script commands and argument and process them
+function process_script_commands_and_arguments {
+
+    local script_command;
+
+    # if no arguments given print usage
+    if [ $# -eq 0 ]; then
+        # print usage to stderr since no valid command was provided
+        usage 1>&2;
+        echo "No command or arguments given">&2;
+        exit 2;
+    fi
+
+    # get the script command
+    script_command="${1}";
+    shift;
+
+    # run specific commands based on each command
+    case "${script_command}" in
+
+        make-key)
+             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
+             "${TMP_SCRIPT_FOLDER}/core/artly-make-key.sh" "$@";
+             exit;
+            ;;
+
+        make-debian-repository)
+             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
+             "${TMP_SCRIPT_FOLDER}/core/artly-make-debian-repository.sh" "$@";
+             exit;
+            ;;
+
+        --ubuntu-packages)
+            ubuntu_packages;
+            exit;
+            ;;
+
+
+        --help | -h | help)
+            usage;
+            exit 1;
+            ;;
+
+        --)
+            # is the end marker from getopt
+            shift;
+            # there should not be any trailing params
+            if [ "${#}" -gt 0 ]; then
+                # print usage to stderr since no valid command was provided
+                usage 1>&2;
+                echo "Unknown command or arguments(s) '$@' given">&2;
+                exit 2;
+            else
+                # if it 0 then break the loop, so the shift at the end
+                # of the for loop did not cause an error
+                break;
+            fi
+            ;;
+
+        -*)
+            # print usage to stderr since no valid command was provided
+            usage 1>&2;
+            echo "Unknown command or argument(s) '${1}' given.">&2;
+            exit 2;
+            ;;
+
+        *)
+            # print usage to stderr since no valid command was provided
+            usage 1>&2;
+            echo "No command or argument given">&2;
+            exit 2;
+            ;;
+    esac;
+
+}
+
+
+# checks for all the commands required for setup and activate
+# this does not include the python commands we install
+function check_commands {
+
+    # check for bash 4
+    cmd_exists_bash4_or_abort;
+
+    # check for a whole set of commands
+    cmds_exists_or_abort "echo" "basename" "dirname";
+
+}
+
+
+# ............................................................................ #
+# ubuntu packages requirewd by artly
+function ubuntu_packages {
+    echo "apt-get install coreutils findutils sed gnupg wget aptly jq haveged";
+}
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
+# import utils.sh
+if [ -f "${TMP_SCRIPT_FOLDER}/core/utils.sh" ]; then
+    source "${TMP_SCRIPT_FOLDER}/core/utils.sh"
+else
+    echo "
+Could not load required '${TMP_SCRIPT_FOLDER}/core/utils.sh' module.$
+
+" >&2;
+    exit 1;
+fi
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
+begin "$@";

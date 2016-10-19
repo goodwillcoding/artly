@@ -1,0 +1,50 @@
+Artly
+=====
+
+../core/artly-make-key.sh \
+  --output-folder ./keys \
+  --name-real "Real Name" \
+  --name-comment "Comment" \
+  --name-email "person@example.com" \
+  --expire-date 0 \
+  --key-length 1024 \
+  --subkey-length 1024 \
+  --recreate \
+  --gpg gpg \
+  --work-folder ./tmp.artly-make-key
+
+../core/artly-make-keyring.sh \
+  --key ./keys/private.asc \
+  --output-folder ./keyrings \
+  --recreate \
+  --gpg gpg \
+  --work-folder ./tmp.artly-make-keyring
+
+../core/artly-make-debian-repository.sh \
+  --output-folder ./repository \
+  --name "my-repo" \
+  --component "main" \
+  --distribution "xenial" \
+  --label "My Debian Packages Repository" \
+  --origin "My random collection" \
+  --description "Various Packages" \
+  --secret-key-file ./keys/private.asc \
+  --recreate \
+  --gpg gpg \
+  --package-location "./packages" \
+  --work-folder ./tmp.artly-make-debian-repository
+
+
+Test Packages
+=============
+
+wget \
+  https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt-common_0.16.4-1precise_all.deb \
+  https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt-doc_0.16.4-1precise_all.deb \
+  https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt-master_0.16.4-1precise_all.deb \
+  https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt-minion_0.16.4-1precise_all.deb \
+  https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt-syndic_0.16.4-1precise_all.deb \
+  https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt_0.16.4-1precise.dsc \
+  https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt_0.16.4-1precise.tar.gz \
+  http://mirrors.kernel.org/ubuntu/pool/universe/p/python-support/python-support_1.0.14ubuntu2_all.deb
+
