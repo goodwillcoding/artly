@@ -82,7 +82,7 @@ URLs to 2 Debian packages.
        $ wget \
            --no-clobber \
            --directory-prefix "/tmp/artly_demo/debian_packages" \
-             http://mirrors.kernel.org/ubuntu/pool/universe/p/python-support/python-support_1.0.14ubuntu2_all.deb
+           http://mirrors.kernel.org/ubuntu/pool/universe/p/python-support/python-support_1.0.14ubuntu2_all.deb
 
        $ wget \
            --no-clobber \
