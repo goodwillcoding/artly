@@ -206,7 +206,7 @@ URLs to 2 Debian packages.
        $ echo 'deb http://localhost/ xenial main' \
          | sudo tee /etc/apt/sources.list.d/artly-demo.list
 
-         deb http://localhost:9000/ xenial main
+         deb http://localhost/ xenial main
 
    Add the repository public key to APT keyring:
 
