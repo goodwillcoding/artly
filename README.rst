@@ -161,7 +161,6 @@ URLs to 2 Debian packages.
            --secret-key-file /tmp/artly_demo/keys/private.asc \
            --package-location "/tmp/artly_demo/debian_packages/folder" \
            --package-location "/tmp/artly_demo/debian_packages/python-support_1.0.14ubuntu2_all.deb" \
-           --package-location "/tmp/artly_demo/debian_packages/python-support_1.0.14ubuntu2_all.deb" \
            --package-url "https://launchpad.net/~saltstack/+archive/ubuntu/salt16/+files/salt-doc_0.16.4-1precise_all.deb"
 
          Created work folder: /tmp/artly-make-debian-repository.TcOJOl9btX
