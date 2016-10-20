@@ -262,7 +262,7 @@ Security Concerns
     To mitigate some of these security concerns **Artly** does the following:
 
     1. All GPG work folders and keys permissions are set to 600 as required by
-       GPG itself. The same is true for private keys place in the output
+       GPG itself. The same is true for private keys placed in the output
        folders.
 
     2. The ``shred`` command is used to destroy all sensitive key and keyring
