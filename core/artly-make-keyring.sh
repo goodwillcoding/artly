@@ -554,7 +554,7 @@ function create_folders {
 
 # ........................................................................... #
 # remove out folder if it exists and if recreate flag is set
-# otherwise abort the script recommending --recrete/-r option
+# otherwise abort the script recommending --recreate option
 function remove_output_folder {
 
     local force_removal=${1};
@@ -578,7 +578,7 @@ function remove_output_folder {
 ${TMP_OPTION_OUTPUT_FOLDER}";
         else
             abort "Output folder already exists: ${TMP_OPTION_OUTPUT_FOLDER}
-Consider --recreate/-r option." 1;
+Consider --recreate option." 1;
         fi
     fi
 

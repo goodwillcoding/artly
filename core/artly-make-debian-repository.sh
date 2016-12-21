@@ -302,7 +302,6 @@ folders">&2;
     fi
 }
 
-
 # ............................................................................ #
 # check commands, parse scripts, and run the install/setup steps
 function begin () {
@@ -838,7 +837,7 @@ function create_folders {
 
 # ........................................................................... #
 # remove out folder if it exists and if recreate flag is set
-# otherwise abort the script recommending --recrete/-r option
+# otherwise abort the script recommending --recreate option
 # {1} int - flag to force removal of the output folder
 function remove_output_folder {
 
@@ -857,7 +856,7 @@ function remove_output_folder {
 
         else
             abort "Output folder already exists: ${TMP_OPTION_OUTPUT_FOLDER}
-Consider --recreate/-r option." 1;
+Consider --recreate option." 1;
         fi
     fi
 
