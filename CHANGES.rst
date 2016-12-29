@@ -20,6 +20,12 @@ Features
    'document-debian-repository' command (described above) when it is run with
    '--style github-pages' argument
 
+Improvements
+------------
+
+ * Look for artly's core folder after resolving symlinks, which will help
+   artly with packaging
+
 Bugs
 ----
 
