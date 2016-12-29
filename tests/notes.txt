@@ -13,6 +13,7 @@ Artly
   --gpg gpg \
   --work-folder ./tmp.artly-make-key
 
+
 ../core/artly-make-keyring.sh \
   --key ./keys/private.asc \
   --output-folder ./keyrings \
@@ -20,11 +21,12 @@ Artly
   --gpg gpg \
   --work-folder ./tmp.artly-make-keyring
 
+
 ../core/artly-make-debian-repository.sh \
   --output-folder ./repository \
   --name "my-repo" \
-  --component "main" \
   --distribution "xenial" \
+  --component "main" \
   --label "My Debian Packages Repository" \
   --origin "My random collection" \
   --description "Various Packages" \
@@ -33,6 +35,28 @@ Artly
   --gpg gpg \
   --package-location "./packages" \
   --work-folder ./tmp.artly-make-debian-repository
+
+
+../core/artly-document-debian-repository.sh \
+  --output-folder ./documented_repository \
+  --source-folder ./repository \
+  --name "salt16" \
+  --title "Salt 16 Debian Repository" \
+  --url "https://goodwillcoding.github.io/salt16-debian-repository" \
+  --public-key-url "https://goodwillcoding.github.io/salt16-debian-repository/public.asc" \
+  --package "salt-master salt-minion" \
+  --style "github-pages" \
+  --recreate \
+  --work-folder ./tmp.artly-document-debian-repository
+
+
+../core/artly-publish-github-pages.sh \
+  --source-folder ./documented_repository \
+  --git-uri "git@github.com:goodwillcoding/salt16-debian-repository.git" \
+  --author "goodwillcoding" \
+  --email "goodwillcoding@example.com" \
+  --title "Salt 16 Debian Repository" \
+  --work-folder ./tmp.artly-publish-github-pages
 
 
 Test Packages

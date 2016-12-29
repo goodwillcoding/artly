@@ -33,10 +33,11 @@ ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
 # process_script_arguments
 # TODO: figure out a better way, prolly use -z
 TMP_OPTION_OUTPUT_FOLDER="";
-TMP_OPTION_RECREATE=0;
-TMP_OPTION_WORK_FOLDER="";
+TMP_KEY_FILE="";
 TMP_OPTION_GPG="";
+TMP_OPTION_RECREATE=0;
 TMP_OPTION_MACHINE_READABLE=0;
+TMP_OPTION_WORK_FOLDER="";
 
 TMP_OPTION_VERBOSE=0;
 TMP_OPTION_QUIET=0;
@@ -57,13 +58,18 @@ TMP_WORK_FOLDER_NAME_TEMPLATE="/tmp/artly-make-keyring.XXXXXXXXXX";
 TMP_GPG_ERROR_LOG="";
 TMP_GPG_HOMEDIR_FOLDER="";
 TMP_GPG_CONF_FILE="";
-TMP_KEY_FILE="";
 
 # keyrings file paths
 TMP_KEYRING_FILE="";
 TMP_SECRET_KEYRING_FILE="";
 TMP_KEYID="";
 TMP_SHRED_VERBOSITY="";
+
+# flag to track if we created the output folder, necessary because of the
+# error trapping removing the folder when we did not create it
+# default to 0 so this way we do not remove the folder
+TMP_CREATED_OUTPUT_FOLDER=0;
+
 
 # ............................................................................ #
 # print script usage
@@ -98,14 +104,14 @@ Options:
         set to the first gpg executble found on the PATH using \"type -P gpg\"
         command.
 
-    --machine-readable
-        Optional, print out colon separated output. This only prints out the
-        keyring information.
-
     --recreate
         Optional, delete previous output folder by the same name before
         creating it again. Useful when you want to recreate the keys without
         having to fo manual removal.
+
+    --machine-readable
+        Optional, print out colon separated output. This only prints out the
+        keyring information.
 
     --work-folder <path>
         Optional, work folder path, needed to generate the keyrings. By default
@@ -185,20 +191,23 @@ function trap_handler {
         set -o errexit;
         echo "----- end stack trace   ----";
 
-        echo "Unexpected script error, deleting up output and work folders">&2;
+        echo "Unexpected script error, deleting output and work folders as \
+needed.">&2;
         remove_temporary_directories_and_files;
         exit 1;
     elif [ "${error_signal}" == "TERM" ]; then
-        echo "Unexpected script termination, deleting up output and work \
-folders">&2;
+        echo "Unexpected script termination, deleting output and work folders \
+as needed.">&2;
         remove_temporary_directories_and_files;
         exit 1;
     elif [ "${error_signal}" == "INT" ]; then
-        echo "Unexpected script interupt, deleting up output and work \
-folders">&2;
+        echo "Unexpected script interruption, deleting output and work \
+folders as needed.">&2;
         remove_temporary_directories_and_files;
     elif [ "${error_signal}" == "EXIT" ]; then
         if [ ${exit_code} -ne 0 ]; then
+            echo "Unexpected script exit, deleting output and work \
+folders as needed.">&2;
             remove_temporary_directories_and_files;
         fi
     fi
@@ -283,15 +292,16 @@ function check_commands {
 # log paths and various scripts information
 function log_script_info {
 
-    log_verbose "Debug         : $(humanize_bool ${TMP_OPTION_DEBUG})";
-    log_verbose "Key file      : ${TMP_KEY_FILE}";
     log_verbose "Output folder : ${TMP_OPTION_OUTPUT_FOLDER}";
+    log_verbose "Key file      : ${TMP_KEY_FILE}";
     log_verbose "Recreate      : $(humanize_bool ${TMP_OPTION_RECREATE})";
     log_verbose "GPG executable: ${TMP_OPTION_GPG}";
     log_verbose "GPG version   : $(gpg_version ${TMP_OPTION_GPG})";
     log_verbose "Work folder   : ${TMP_OPTION_WORK_FOLDER}";
     log_verbose "GPG homedir   : ${TMP_GPG_HOMEDIR_FOLDER}";
     log_verbose "gpg.conf      : ${TMP_GPG_CONF_FILE}";
+    log_verbose "Debug         : $(humanize_bool ${TMP_OPTION_DEBUG})";
+
 }
 
 
@@ -304,7 +314,7 @@ function process_script_arguments {
     local processed_args;
 
     short_args="o: k: v q h";
-    long_args+="output-folder: key-file: gpg: machine-readable recreate ";
+    long_args+="output-folder: key-file: gpg: recreate machine-readable ";
     long_args+="work-folder: verbose quiet no-color debug help";
 
     # if no arguments given print usage
@@ -327,24 +337,22 @@ ${processed_args}" 1;
             # store output folder path
             --output-folder | -o)
                 TMP_OPTION_OUTPUT_FOLDER="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store output folder path
             --key-file | -k)
                 TMP_KEY_FILE="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store gpg executable path
             --gpg)
                 TMP_OPTION_GPG="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store machine readable flag
             --machine-readable)
                 TMP_OPTION_MACHINE_READABLE=1;
                 ;;
@@ -357,26 +365,30 @@ ${processed_args}" 1;
             # store work folder path
             --work-folder | -w)
                 TMP_OPTION_WORK_FOLDER="${2}";
-                # remove the value argument from the stack
                 shift
                 ;;
 
+            # store verbose flag
             --verbose | -v)
                 TMP_OPTION_VERBOSE=1;
                 ;;
 
+            # store quiet flag
             --quiet | -q)
                 TMP_OPTION_QUIET=1;
                 ;;
 
+            # store no color flag
             --no-color)
                 TMP_OPTION_NO_COLOR=1;
                 ;;
 
+            # store debug flag
             --debug)
                 TMP_OPTION_DEBUG=1;
                 ;;
 
+            # show usage and quit with code 1
             --help | -h)
                 usage;
                 exit 1;
@@ -502,8 +514,25 @@ function validate_and_default_arguments {
 function remove_temporary_directories_and_files {
 
     # if debug is NOT set "force" remove output and work folder
+    # BUT!!! only remove the output folder if we created it. this helps not to
+    # remove it when we remove is attempted from error handling
     if [ ${TMP_OPTION_DEBUG} -eq 0 ]; then
-        remove_output_folder 1;
+        if [ ${TMP_CREATED_OUTPUT_FOLDER} -eq 1 ]; then
+            # remove the work for this script folder if exist
+            if [ -d "${TMP_OPTION_OUTPUT_FOLDER}" ]; then
+                rm \
+                    ${TMP_RM_VERBOSITY} \
+                    --recursive \
+                    "${TMP_OPTION_OUTPUT_FOLDER}";
+                log_unquiet "Removed output folder: \
+${TMP_OPTION_OUTPUT_FOLDER}";
+            fi
+        else
+            log_unquiet "Did not remove the output folder, \
+since we did not create it.";
+        fi
+
+        # always remove work folder
         remove_work_folder;
     fi
 
@@ -515,20 +544,8 @@ function remove_temporary_directories_and_files {
 # also homedir folder permissions are set at 700
 function create_folders {
 
-    # remove output folder if exists
-    remove_output_folder  ${TMP_OPTION_RECREATE};
     # create output folder
-    mkdir \
-        ${TMP_MKDIR_VERBOSITY} \
-        --parent \
-        "${TMP_OPTION_OUTPUT_FOLDER}";
-    # set folder permission to 700 to match what gpg does with it's folders in
-    # making it more secure
-    chmod \
-        ${TMP_CHMOD_VERBOSITY} \
-        700 \
-        "${TMP_OPTION_OUTPUT_FOLDER}";
-    log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+    create_output_folder
 
     # remove work folder if exists
     remove_work_folder;
@@ -553,15 +570,12 @@ function create_folders {
 
 
 # ........................................................................... #
-# remove out folder if it exists and if recreate flag is set
-# otherwise abort the script recommending --recreate option
-function remove_output_folder {
+# create output folder, remove it if already exists and recreate is true
+# otherwise abort suggesting recreate option
+function create_output_folder {
 
-    local force_removal=${1};
-
-    # remove the work for this script folder if exist
     if [ -d "${TMP_OPTION_OUTPUT_FOLDER}" ]; then
-        # only remove folder if recreate option has been specified
+
         if [ ${TMP_OPTION_RECREATE} -eq 1 ]; then
 
             # shred all the files in the output folder, cause private keys
@@ -569,19 +583,56 @@ function remove_output_folder {
                 "${TMP_SHRED_VERBOSITY}" \
                 "${TMP_OPTION_OUTPUT_FOLDER}";
 
+            # remove the output folder
             rm \
                 ${TMP_RM_VERBOSITY} \
                 --recursive \
                 "${TMP_OPTION_OUTPUT_FOLDER}";
-
             log_unquiet "Shredded and removed output folder: \
 ${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # create output folder
+            mkdir \
+                ${TMP_MKDIR_VERBOSITY} \
+                --parent \
+                "${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # set folder permission to 700 to match what gpg does with it's
+            # folders in making it more secure
+            chmod \
+                ${TMP_CHMOD_VERBOSITY} \
+                700 \
+                "${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # set a flag that we created the folder
+            TMP_CREATED_OUTPUT_FOLDER=1;
+
+            log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+
         else
             abort "Output folder already exists: ${TMP_OPTION_OUTPUT_FOLDER}
 Consider --recreate option." 1;
         fi
-    fi
 
+    else
+        # create output folder
+        mkdir \
+            ${TMP_MKDIR_VERBOSITY} \
+            --parent \
+            "${TMP_OPTION_OUTPUT_FOLDER}";
+
+        # set folder permission to 700 to match what gpg does with it's
+        # folders in making it more secure
+        chmod \
+            ${TMP_CHMOD_VERBOSITY} \
+            700 \
+            "${TMP_OPTION_OUTPUT_FOLDER}";
+
+        # set a flag that we created the folder
+        TMP_CREATED_OUTPUT_FOLDER=1;
+
+        log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+    fi
 }
 
 

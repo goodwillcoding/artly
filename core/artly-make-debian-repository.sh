@@ -25,6 +25,8 @@ set -o pipefail;
 # debugging
 #set -o xtrace;
 
+
+# ........................................................................... #
 # get script name
 TMP_SCRIPT_NAME=$(basename "${0}");
 # get full path of the script folder
@@ -33,6 +35,8 @@ TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
 # artly plugin display name, extracted from environment otherwise set to ""
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
 
+
+# ........................................................................... #
 # variables to store script arguments in
 # static defaults are set here
 # dynamic ones, which are based on other passed in parameters are set in
@@ -65,6 +69,7 @@ TMP_GPG_VERBOSITY="";
 TMP_RM_VERBOSITY="";
 TMP_MKDIR_VERBOSITY="";
 TMP_MV_VERBOSITY="";
+TMP_CP_VERBOSITY="";
 TMP_CHMOD_VERBOSITY="";
 TMP_SHRED_VERBOSITY="";
 
@@ -94,7 +99,13 @@ TMP_SECRET_KEYRING_FILE="";
 TMP_KEYID="";
 TMP_IMPORTED_PACKAGES_COUNT="";
 
-# ............................................................................ #
+# flag to track if we created the output folder, necessary because of the
+# error trapping removing the folder when we did not create it
+# default to 0 so this way we do not remove the folder
+TMP_CREATED_OUTPUT_FOLDER=0;
+
+
+# ........................................................................... #
 # print script usage
 function usage {
 
@@ -126,11 +137,11 @@ Options:
     -n, --name
         Repository name.
 
-    -c, --component
-        Repository name.
-
     -d, --distribution
-        Repository name.
+        Repository distribution.
+
+    -c, --component
+        Repository component.
 
     -k, --secret-key-file <path>
         Secret key file path. Secret PGP key to sign the repository with.
@@ -200,7 +211,7 @@ Options:
     --recreate
         Optional, delete previous output folder by the same name before
         creating it again. Useful when you want to recreate the keys without
-        having to fo manual removal.
+        having to do manual removal.
 
     --work-folder <path>
         Optional, work folder path, needed to generate the keyrings. By default
@@ -283,26 +294,30 @@ function trap_handler {
         set -o errexit;
         echo "----- end stack trace   ----";
 
-        echo "Unexpected script error, deleting up output and work folders">&2;
+        echo "Unexpected script error, deleting output and work folders as \
+needed.">&2;
         remove_temporary_directories_and_files;
         exit 1;
     elif [ "${error_signal}" == "TERM" ]; then
-        echo "Unexpected script termination, deleting up output and work \
-folders">&2;
+        echo "Unexpected script termination, deleting output and work folders \
+as needed.">&2;
         remove_temporary_directories_and_files;
         exit 1;
     elif [ "${error_signal}" == "INT" ]; then
-        echo "Unexpected script interupt, deleting up output and work \
-folders">&2;
+        echo "Unexpected script interruption, deleting output and work \
+folders as needed.">&2;
         remove_temporary_directories_and_files;
     elif [ "${error_signal}" == "EXIT" ]; then
         if [ ${exit_code} -ne 0 ]; then
+            echo "Unexpected script exit, deleting output and work \
+folders as needed.">&2;
             remove_temporary_directories_and_files;
         fi
     fi
 }
 
-# ............................................................................ #
+
+# ........................................................................... #
 # check commands, parse scripts, and run the install/setup steps
 function begin () {
 
@@ -406,11 +421,11 @@ function process_script_arguments {
     local long_args="";
     local processed_args;
 
-    short_args="o: n: c: d: k: p: u: a: w: v q h";
-    long_args+="output-folder: name: component: distribution: ";
+    short_args="o: n: d: c: k: p: u: a: v q h";
+    long_args+="output-folder: name: distribution: component: ";
     long_args+="secret-key-file: package-location: package-url: ";
     long_args+="architectures: label: origin: description: public-key: ";
-    long_args+="recreate gpg: machine-readable work-folder: verbose quiet ";
+    long_args+="gpg: recreate machine-readable work-folder: verbose quiet ";
     long_args+="debug help";
 
     # if no arguments given print usage
@@ -434,82 +449,78 @@ ${processed_args}" 1;
             # store output folder path
             --output-folder | -o)
                 TMP_OPTION_OUTPUT_FOLDER="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store repository name
             --name | -n)
                 TMP_OPTION_REPOSITORY_NAME="${2}";
-                # remove the value argument from the stack
-                shift;
-                ;;
-
-            # store repository component
-            --component | -c)
-                TMP_OPTION_REPOSITORY_COMPONENT="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store repository distribution
             --distribution | -d)
                 TMP_OPTION_REPOSITORY_DISTRIBUTION="${2}";
-                # remove the value argument from the stack
+                shift;
+                ;;
+
+            # store repository component
+            --component | -c)
+                TMP_OPTION_REPOSITORY_COMPONENT="${2}";
                 shift;
                 ;;
 
             # store secret key file path
             --secret-key-file | -k)
                 TMP_SECRET_KEY_FILE="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store package location in an array
             --package-location | -p)
                 TMP_OPTION_PACKAGE_ENTITIES+=("${1}:${2}")
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store package url in an array
             --package-url | -u)
                 TMP_OPTION_PACKAGE_ENTITIES+=("${1}:${2}")
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store repository architectures
             --architectures | -a)
                 TMP_OPTION_REPOSITORY_ARCHITECTURES="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store repository label
             --label)
                 TMP_OPTION_REPOSITORY_LABEL="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store repository origin
             --origin)
                 TMP_OPTION_REPOSITORY_ORIGIN="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store repository description
             --description)
                 TMP_OPTION_REPOSITORY_DESCRIPTION="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
             # store exported public key
             --public-key)
                 TMP_OPTION_PUBLIC_KEY_FILE="${2}";
-                # remove the value argument from the stack
+                shift;
+                ;;
+
+            # store gpg executable path
+            --gpg)
+                TMP_OPTION_GPG="${2}";
                 shift;
                 ;;
 
@@ -518,40 +529,38 @@ ${processed_args}" 1;
                 TMP_OPTION_RECREATE=1;
                 ;;
 
-            --gpg)
-                # store gpg executable path
-                TMP_OPTION_GPG="${2}";
-                # remove the value argument from the stack
-                shift;
-                ;;
-
             # store work folder path
-            --work-folder | -w)
+            --work-folder)
                 TMP_OPTION_WORK_FOLDER="${2}";
-                # remove the value argument from the stack
                 shift
                 ;;
 
+            # store machine readable flag
             --machine-readable)
                 TMP_OPTION_MACHINE_READABLE=1;
                 ;;
 
+            # store verbose flag
             --verbose | -v)
                 TMP_OPTION_VERBOSE=1;
                 ;;
 
+            # store quiet flag
             --quiet | -q)
                 TMP_OPTION_QUIET=1;
                 ;;
 
+            # store no color flag
             --no-color)
                 TMP_OPTION_NO_COLOR=1;
                 ;;
 
+            # store debug flag
             --debug)
                 TMP_OPTION_DEBUG=1;
                 ;;
 
+            # show usage and quit with code 1
             --help | -h)
                 usage;
                 exit 1;
@@ -601,21 +610,20 @@ function validate_and_default_arguments {
 
     local public_key_check_bad_parts_check;
 
-
     # check if repository name is specified, if not abort with message
     if [ "${TMP_OPTION_REPOSITORY_NAME}" == "" ]; then
         abort "Please specify repository name using --name/-n" 1;
-    fi
-
-    # check if repository component is specified, if not abort with message
-    if [ "${TMP_OPTION_REPOSITORY_COMPONENT}" == "" ]; then
-        abort "Please specify repository component using --component/-c" 1;
     fi
 
     # check if repository distribution is specified, if not abort with message
     if [ "${TMP_OPTION_REPOSITORY_DISTRIBUTION}" == "" ]; then
         abort \
             "Please specify repository distribution using --distribution/-d" 1;
+    fi
+
+    # check if repository component is specified, if not abort with message
+    if [ "${TMP_OPTION_REPOSITORY_COMPONENT}" == "" ]; then
+        abort "Please specify repository component using --component/-c" 1;
     fi
 
     # set the default to the common "amd64, all,source" see usage notes for
@@ -636,7 +644,7 @@ function validate_and_default_arguments {
 or --package-location" 1;
     fi
 
-    # check if output file is specified, if not abort with message
+    # check if output folder is specified, if not abort with message
     if [ "${TMP_OPTION_OUTPUT_FOLDER}" == "" ]; then
         abort "Please specify output folder using --output-folder/-o" 1;
     fi
@@ -697,6 +705,7 @@ start with / and without \"..\" parts" 1
         TMP_RM_VERBOSITY="--verbose";
         TMP_MKDIR_VERBOSITY="--verbose";
         TMP_MV_VERBOSITY="--verbose";
+        TMP_CP_VERBOSITY="--verbose";
         TMP_CHMOD_VERBOSITY="--verbose";
         TMP_SHRED_VERBOSITY="--verbose";
     else
@@ -705,6 +714,7 @@ start with / and without \"..\" parts" 1
         TMP_RM_VERBOSITY="";
         TMP_MKDIR_VERBOSITY="";
         TMP_MV_VERBOSITY="";
+        TMP_CP_VERBOSITY="";
         TMP_CHMOD_VERBOSITY="";
         TMP_SHRED_VERBOSITY="";
     fi
@@ -719,6 +729,7 @@ start with / and without \"..\" parts" 1
         TMP_RM_VERBOSITY="";
         TMP_MKDIR_VERBOSITY="";
         TMP_MV_VERBOSITY="";
+        TMP_CP_VERBOSITY="";
         TMP_CHMOD_VERBOSITY="--quiet";
         TMP_SHRED_VERBOSITY="";
     fi
@@ -745,15 +756,14 @@ start with / and without \"..\" parts" 1
 }
 
 
-# ............................................................................ #
+# ........................................................................... #
 # log paths and various scripts information
 function log_script_info {
 
 
-    log_verbose "Debug                    : $(humanize_bool ${TMP_OPTION_DEBUG})";
     log_verbose "Repository Name          : ${TMP_OPTION_REPOSITORY_NAME}";
-    log_verbose "Repository Component     : ${TMP_OPTION_REPOSITORY_COMPONENT}";
     log_verbose "Repository Distribution  : ${TMP_OPTION_REPOSITORY_DISTRIBUTION}";
+    log_verbose "Repository Component     : ${TMP_OPTION_REPOSITORY_COMPONENT}";
     log_verbose "Repository Architectures : ${TMP_OPTION_REPOSITORY_ARCHITECTURES}";
     log_verbose "Secret Key file          : ${TMP_SECRET_KEY_FILE}";
     log_verbose "Output folder            : ${TMP_OPTION_OUTPUT_FOLDER}";
@@ -769,6 +779,7 @@ function log_script_info {
     log_verbose "Work folder              : ${TMP_OPTION_WORK_FOLDER}";
     log_verbose "GPG homedir              : ${TMP_GPG_HOMEDIR_FOLDER}";
     log_verbose "gpg.conf                 : ${TMP_GPG_CONF_FILE}";
+    log_verbose "Debug                    : $(humanize_bool ${TMP_OPTION_DEBUG})";
 
     for package_entity in "${TMP_OPTION_PACKAGE_ENTITIES[@]}"; do
         package_type="$(echo ${package_entity} | cut -d':' -f1)";
@@ -785,8 +796,25 @@ function log_script_info {
 function remove_temporary_directories_and_files {
 
     # if debug is NOT set "force" remove output and work folder
+    # BUT!!! only remove the output folder if we created it. this helps not to
+    # remove it when we remove is attempted from error handling
     if [ ${TMP_OPTION_DEBUG} -eq 0 ]; then
-        remove_output_folder 1;
+        if [ ${TMP_CREATED_OUTPUT_FOLDER} -eq 1 ]; then
+            # remove the work for this script folder if exist
+            if [ -d "${TMP_OPTION_OUTPUT_FOLDER}" ]; then
+                rm \
+                    ${TMP_RM_VERBOSITY} \
+                    --recursive \
+                    "${TMP_OPTION_OUTPUT_FOLDER}";
+                log_unquiet "Removed output folder: \
+${TMP_OPTION_OUTPUT_FOLDER}";
+            fi
+        else
+            log_unquiet "Did not remove the output folder, \
+since we did not create it.";
+        fi
+
+        # always remove work folder
         remove_work_folder;
     fi
 
@@ -798,9 +826,8 @@ function remove_temporary_directories_and_files {
 # also homedir folder permissions are set at 700
 function create_folders {
 
-
-    # remove output folder if exists
-    remove_output_folder ${TMP_OPTION_RECREATE};
+    # create output folder
+    create_output_folder
 
     # remove work folder if exists, forcing removal if recreate flag is set
     remove_work_folder;
@@ -836,31 +863,50 @@ function create_folders {
 
 
 # ........................................................................... #
-# remove out folder if it exists and if recreate flag is set
-# otherwise abort the script recommending --recreate option
-# {1} int - flag to force removal of the output folder
-function remove_output_folder {
+# create output folder, remove it if already exists and recreate is true
+# otherwise abort suggesting recreate option
+function create_output_folder {
 
-    local force_removal=${1};
-
-    # remove the work for this script folder if exist
     if [ -d "${TMP_OPTION_OUTPUT_FOLDER}" ]; then
-        # only remove folder if recreate option has been specified
-        if [ ${force_removal} -eq 1 ]; then
+
+        if [ ${TMP_OPTION_RECREATE} -eq 1 ]; then
+            # remove the output folder
             rm \
                 ${TMP_RM_VERBOSITY} \
                 --recursive \
                 "${TMP_OPTION_OUTPUT_FOLDER}";
-
             log_unquiet "Removed output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # create output folder
+            mkdir \
+                ${TMP_MKDIR_VERBOSITY} \
+                --parent \
+                "${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # set a flag that we created the folder
+            TMP_CREATED_OUTPUT_FOLDER=1;
+
+            log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
 
         else
             abort "Output folder already exists: ${TMP_OPTION_OUTPUT_FOLDER}
 Consider --recreate option." 1;
         fi
-    fi
 
+    else
+        # create output folder
+        mkdir \
+            ${TMP_MKDIR_VERBOSITY} \
+            --parent \
+            "${TMP_OPTION_OUTPUT_FOLDER}";
+
+        # set a flag that we created the folder
+        TMP_CREATED_OUTPUT_FOLDER=1;
+
+        log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+    fi
 }
+
 
 
 # ........................................................................... #
@@ -869,7 +915,6 @@ function remove_work_folder {
 
     # remove the work for this script folder if exist
     if [ -d "${TMP_OPTION_WORK_FOLDER}" ]; then
-
         # shred all the files in the gpg homedir folder, cause private keys
         # and keyrings
         shred_recursively \
@@ -1256,15 +1301,19 @@ function publish_repository {
     # TMP_IMPORTED_PACKAGES_COUNT
     TMP_IMPORTED_PACKAGES_COUNT="$(get_repository_package_count)";
 
-    # mv the "public" repository folder inside aptly rootdir to ubuntu folder
+    # copy the "public" repository folder inside aptly rootdir to ubuntu folder
     # of the repository output folder
-    mv \
-        ${TMP_MV_VERBOSITY} \
-        "${TMP_APTLY_ROOTDIR_FOLDER}/public" \
-       "${TMP_OPTION_OUTPUT_FOLDER}" \
-    || abort "failed to move repository to: ${TMP_OPTION_OUTPUT_FOLDER}" 1;
 
-    log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+    cp \
+        ${TMP_CP_VERBOSITY} \
+        --recursive \
+        "${TMP_APTLY_ROOTDIR_FOLDER}"/public \
+        --no-target-directory \
+        "${TMP_OPTION_OUTPUT_FOLDER}" \
+    || abort "failed to copy repository to: ${TMP_OPTION_OUTPUT_FOLDER}" 1;
+
+    log_unquiet "Copied repository to output folder: \
+${TMP_OPTION_OUTPUT_FOLDER}";
 
 }
 
@@ -1334,7 +1383,7 @@ function get_repository_package_count {
 
 
 # ........................................................................... #
-# print out keyring information
+# print out repository information
 function print_repository_information {
 
     local keyring="${TMP_OPTION_OUTPUT_FOLDER}/";
@@ -1345,8 +1394,8 @@ function print_repository_information {
 
     if [ ${TMP_OPTION_MACHINE_READABLE} -eq 1 ]; then
         echo "repository-name:${TMP_OPTION_REPOSITORY_NAME}";
-        echo "repository-component:${TMP_OPTION_REPOSITORY_COMPONENT}";
         echo "repository-distribution:${TMP_OPTION_REPOSITORY_DISTRIBUTION}";
+        echo "repository-component:${TMP_OPTION_REPOSITORY_COMPONENT}";
         echo "repository-architectures:${TMP_OPTION_REPOSITORY_ARCHITECTURES}";
         echo "repository-folder:${TMP_OPTION_OUTPUT_FOLDER}";
         echo "repository-label:${TMP_OPTION_REPOSITORY_LABEL}";
@@ -1355,8 +1404,8 @@ function print_repository_information {
         echo "public-key:${TMP_PUBLIC_KEY_FILE}";
     else
         echo "Repository Name            : ${TMP_OPTION_REPOSITORY_NAME}";
-        echo "Repository Component       : ${TMP_OPTION_REPOSITORY_COMPONENT}";
         echo "Repository Distribution    : ${TMP_OPTION_REPOSITORY_DISTRIBUTION}";
+        echo "Repository Component       : ${TMP_OPTION_REPOSITORY_COMPONENT}";
         echo "Repository Architectures   : ${TMP_OPTION_REPOSITORY_ARCHITECTURES}";
         echo "Repository Folder          : ${TMP_OPTION_OUTPUT_FOLDER}";
         echo "Repository Label           : ${TMP_OPTION_REPOSITORY_LABEL}";

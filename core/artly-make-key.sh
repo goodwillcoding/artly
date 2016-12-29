@@ -27,26 +27,31 @@ TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
 # artly plugin display name
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
 
-# variables to store script arguments in
-# static defaults are set here
-# dynamic ones, which are based on other passed in parameters are set in
-# process_script_arguments
-# TODO: figure out a better way, prolly use -z
-# initialize GPG Parameters
-# they will be updated by process_script_arguments
-TMP_OPTION_KEY_TYPE="";
-TMP_OPTION_KEY_LENGTH="";
-TMP_OPTION_SUBKEY_TYPE="";
-TMP_OPTION_SUBKEY_LENGTH="";
-TMP_OPTION_NAME_REAL="";
-TMP_OPTION_NAME_COMMENT="";
-TMP_OPTION_NAME_EMAIL="";
-TMP_OPTION_EXPIRE_DATE="";
-
+# output folder
 TMP_OPTION_OUTPUT_FOLDER="";
-TMP_OPTION_RECREATE=0;
+# gpg key type
+TMP_OPTION_KEY_TYPE="";
+# gpg key length
+TMP_OPTION_KEY_LENGTH="";
+# gpg subkey type
+TMP_OPTION_SUBKEY_TYPE="";
+# gpg subkey length
+TMP_OPTION_SUBKEY_LENGTH="";
+# gpg key real name
+TMP_OPTION_NAME_REAL="";
+# gpg key name comment
+TMP_OPTION_NAME_COMMENT="";
+# gpg key name email
+TMP_OPTION_NAME_EMAIL="";
+# gpg key name date
+TMP_OPTION_EXPIRE_DATE="";
+# path gpg binary
 TMP_OPTION_GPG="";
+# recreate the output folder flag
+TMP_OPTION_RECREATE=0;
+# machine output flag
 TMP_OPTION_MACHINE_READABLE=0;
+# script work folder
 TMP_OPTION_WORK_FOLDER="";
 
 TMP_OPTION_VERBOSE=0;
@@ -72,6 +77,10 @@ TMP_GPG_KEY_SCRIPT="";
 TMP_PRIVATE_KEY_FILE="";
 TMP_PUBLIC_KEY_FILE="";
 TMP_KEYID_FILE="";
+# flag to track if we created the output folder, necessary because of the
+# error trapping removing the folder when we did not create it
+# default to 0 so this way we do not remove the folder
+TMP_CREATED_OUTPUT_FOLDER=0;
 
 # ............................................................................ #
 # print script usage
@@ -151,7 +160,7 @@ Options:
     --recreate
         Optional, delete previous output folder by the same name before
         creating it again. Useful when you want to recreate the keys without
-        having to fo manual removal.
+        having to do manual removal.
 
     --machine-readable
         Optional, print out colon separated output. This only prints out the
@@ -236,20 +245,23 @@ function trap_handler {
         set -o errexit;
         echo "----- end stack trace   ----";
 
-        echo "Unexpected script error, deleting up output and work folders">&2;
+        echo "Unexpected script error, deleting output and work folders as \
+needed.">&2;
         remove_temporary_directories_and_files;
         exit 1;
     elif [ "${error_signal}" == "TERM" ]; then
-        echo "Unexpected script termination, deleting up output and work \
-folders">&2;
+        echo "Unexpected script termination, deleting output and work folders \
+as needed.">&2;
         remove_temporary_directories_and_files;
         exit 1;
     elif [ "${error_signal}" == "INT" ]; then
-        echo "Unexpected script interupt, deleting up output and work \
-folders">&2;
+        echo "Unexpected script interruption, deleting output and work \
+folders as needed.">&2;
         remove_temporary_directories_and_files;
     elif [ "${error_signal}" == "EXIT" ]; then
         if [ ${exit_code} -ne 0 ]; then
+            echo "Unexpected script exit, deleting output and work \
+folders as needed.">&2;
             remove_temporary_directories_and_files;
         fi
     fi
@@ -322,8 +334,8 @@ function process_script_arguments {
     short_args="o: n: c: e: d: k: l: s: L: v q h";
     long_args+="output-folder: name-real: name-comment: name-email: ";
     long_args+="key-type: key-length: subkey-type: subkey-length: ";
-    long_args+="expire-date: recreate gpg: work-folder: ";
-    long_args+="machine-readable verbose quiet no-color debug help";
+    long_args+="expire-date: gpg: recreate machine-readable work-folder: ";
+    long_args+="verbose quiet no-color debug help";
 
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
@@ -342,65 +354,63 @@ ${processed_args}" 1;
     while [ $# -gt 0 ]; do
         case "$1" in
 
+            # store output folder path
             --output-folder | -o)
                 TMP_OPTION_OUTPUT_FOLDER="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store real name for gpg key
             --name-real | -n)
                 TMP_OPTION_NAME_REAL="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store name comment for gpg key
             --name-comment | -c)
                 TMP_OPTION_NAME_COMMENT="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store name email for gpg key
             --name-email |-e)
                 TMP_OPTION_NAME_EMAIL="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store expiration date for gpg key
             --expire-date | -d)
                 TMP_OPTION_EXPIRE_DATE="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
-            # store output folder path
+            # store key type for gpg key
             --key-type | -k)
                 TMP_OPTION_KEY_TYPE=="${2}"
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store key length for gpg key
             --key-length | -l)
                 TMP_OPTION_KEY_LENGTH="${2}"
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store subkey type for gpg key
             --subkey-type | -s)
                 TMP_OPTION_SUBKEY_TYPE="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store subkey length for gpg key
             --subkey-length | -L)
                 TMP_OPTION_SUBKEY_LENGTH="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
+            # store gpg executable path
             --gpg)
-                # store gpg executable path
                 TMP_OPTION_GPG="${2}";
-                # remove the value argument from the stack
                 shift;
                 ;;
 
@@ -409,33 +419,38 @@ ${processed_args}" 1;
                 TMP_OPTION_RECREATE=1;
                 ;;
 
+            # store machine readable flag
             --machine-readable)
                 TMP_OPTION_MACHINE_READABLE=1;
                 ;;
 
             # store work folder path
-            --work-folder | -w)
+            --work-folder)
                 TMP_OPTION_WORK_FOLDER="${2}";
                 # remove the value argument from the stack
                 shift
                 ;;
-
+            # store verbose flag
             --verbose | -v)
                 TMP_OPTION_VERBOSE=1;
                 ;;
 
+            # store quiet flag
             --quiet | -q)
                 TMP_OPTION_QUIET=1;
                 ;;
 
+            # store no color flag
             --no-color)
                 TMP_OPTION_NO_COLOR=1;
                 ;;
 
+            # store debug flag
             --debug)
                 TMP_OPTION_DEBUG=1;
                 ;;
 
+            # show usage and quit with code 1
             --help | -h)
                 usage;
                 exit 1;
@@ -482,6 +497,11 @@ ${processed_args}" 1;
 # not set at the top of the script when variable containing them are declared
 function validate_and_default_arguments {
 
+    # output folder for the keys
+    if [ "${TMP_OPTION_OUTPUT_FOLDER}" == "" ]; then
+        abort "Please specify  output folder using --output-folder/-o" 1;
+    fi
+
     # set key type default to RSA
     if [ "${TMP_OPTION_KEY_TYPE}" == "" ]; then
         TMP_OPTION_KEY_TYPE="RSA";
@@ -520,11 +540,6 @@ function validate_and_default_arguments {
     # if expire date is not given abort
     if [ "${TMP_OPTION_EXPIRE_DATE}" == "" ]; then
         abort "Please specify expiration date using --expire-date/-d" 1;
-    fi
-
-    # output folder for the keys
-    if [ "${TMP_OPTION_OUTPUT_FOLDER}" == "" ]; then
-        abort "Please specify  output folder using --output-folder/-o" 1;
     fi
 
     # default virtualenv to gpg executable
@@ -617,9 +632,7 @@ function check_commands {
 # log paths and various scripts information
 function log_script_info {
 
-    log_verbose "Debug         : $(humanize_bool ${TMP_OPTION_DEBUG})";
     log_verbose "Output folder : ${TMP_OPTION_OUTPUT_FOLDER}";
-    log_verbose "Recreate      : $(humanize_bool ${TMP_OPTION_RECREATE})";
     log_verbose "GPG executable: ${TMP_OPTION_GPG}";
     log_verbose "GPG version   : $(gpg_version ${TMP_OPTION_GPG})";
     log_verbose "Work folder   : ${TMP_OPTION_WORK_FOLDER}";
@@ -629,6 +642,8 @@ function log_script_info {
     log_verbose "Private key   : ${TMP_PRIVATE_KEY_FILE}";
     log_verbose "Public key    : ${TMP_PUBLIC_KEY_FILE}";
     log_verbose "KeyID file    : ${TMP_KEYID_FILE}";
+    log_verbose "Recreate      : $(humanize_bool ${TMP_OPTION_RECREATE})";
+    log_verbose "Debug         : $(humanize_bool ${TMP_OPTION_DEBUG})";
 }
 
 
@@ -652,8 +667,25 @@ function log_gpg_parameters {
 function remove_temporary_directories_and_files {
 
     # if debug is NOT set "force" remove output and work folder
+    # BUT!!! only remove the output folder if we created it. this helps not to
+    # remove it when we remove is attempted from error handling
     if [ ${TMP_OPTION_DEBUG} -eq 0 ]; then
-        remove_output_folder 1;
+        if [ ${TMP_CREATED_OUTPUT_FOLDER} -eq 1 ]; then
+            # remove the work for this script folder if exist
+            if [ -d "${TMP_OPTION_OUTPUT_FOLDER}" ]; then
+                rm \
+                    ${TMP_RM_VERBOSITY} \
+                    --recursive \
+                    "${TMP_OPTION_OUTPUT_FOLDER}";
+                log_unquiet "Removed output folder: \
+${TMP_OPTION_OUTPUT_FOLDER}";
+            fi
+        else
+            log_unquiet "Did not remove the output folder, \
+since we did not create it.";
+        fi
+
+        # always remove work folder
         remove_work_folder;
     fi
 
@@ -665,21 +697,8 @@ function remove_temporary_directories_and_files {
 # also homedir folder permissions are set at 700
 function create_folders {
 
-    # remove output folder if exists
-    remove_output_folder ${TMP_OPTION_RECREATE};
     # create output folder
-    mkdir \
-        ${TMP_MKDIR_VERBOSITY} \
-        --parent \
-        "${TMP_OPTION_OUTPUT_FOLDER}";
-    # set folder permission to 700 to match what gpg does with it's folders in
-    # making it more secure
-    chmod \
-        ${TMP_CHMOD_VERBOSITY} \
-        700 \
-        "${TMP_OPTION_OUTPUT_FOLDER}";
-    log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
-
+    create_output_folder
 
     # remove work folder if exists
     remove_work_folder;
@@ -704,16 +723,13 @@ function create_folders {
 
 
 # ........................................................................... #
-# remove out folder if it exists and if recreate flag is set
-# otherwise abort the script recommending --recreate option
-function remove_output_folder {
+# create output folder, remove it if already exists and recreate is true
+# otherwise abort suggesting recreate option
+function create_output_folder {
 
-    local force_removal=${1};
-
-    # remove the work for this script folder if exist
     if [ -d "${TMP_OPTION_OUTPUT_FOLDER}" ]; then
-        # only remove folder if recreate option has been specified
-        if [ ${force_removal} -eq 1 ]; then
+
+        if [ ${TMP_OPTION_RECREATE} -eq 1 ]; then
 
             # shred all the files in the output folder, cause private keys
             shred_recursively \
@@ -725,15 +741,51 @@ function remove_output_folder {
                 ${TMP_RM_VERBOSITY} \
                 --recursive \
                 "${TMP_OPTION_OUTPUT_FOLDER}";
-
             log_unquiet "Shredded and removed output folder: \
 ${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # create output folder
+            mkdir \
+                ${TMP_MKDIR_VERBOSITY} \
+                --parent \
+                "${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # set folder permission to 700 to match what gpg does with it's
+            # folders in making it more secure
+            chmod \
+                ${TMP_CHMOD_VERBOSITY} \
+                700 \
+                "${TMP_OPTION_OUTPUT_FOLDER}";
+
+            # set a flag that we created the folder
+            TMP_CREATED_OUTPUT_FOLDER=1;
+
+            log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+
         else
             abort "Output folder already exists: ${TMP_OPTION_OUTPUT_FOLDER}
 Consider --recreate option." 1;
         fi
-    fi
 
+    else
+        # create output folder
+        mkdir \
+            ${TMP_MKDIR_VERBOSITY} \
+            --parent \
+            "${TMP_OPTION_OUTPUT_FOLDER}";
+
+        # set folder permission to 700 to match what gpg does with it's
+        # folders in making it more secure
+        chmod \
+            ${TMP_CHMOD_VERBOSITY} \
+            700 \
+            "${TMP_OPTION_OUTPUT_FOLDER}";
+
+        # set a flag that we created the folder
+        TMP_CREATED_OUTPUT_FOLDER=1;
+
+        log_unquiet "Created output folder: ${TMP_OPTION_OUTPUT_FOLDER}";
+    fi
 }
 
 

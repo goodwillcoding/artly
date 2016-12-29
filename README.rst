@@ -271,15 +271,15 @@ Security Concerns
        sucessfull and unsuccessful runs unless the ``--debug`` argument is
        specified.
 
-    3. **Aptly** provides the ``--work-folder`` argument to all commands in
+    4. **Artly** provides the ``--work-folder`` argument to all commands in
        case you specify own work folder and avoid creating folders in ``/tmp``.
 
 
 Notes
 =====
 
-Artly is named after APT and APTLY utilities. It stands for Automated
-Repository Tool.
+Artly is named in the fashion of APT and APTLY utilities. It stands for
+Automated Repository Tool.
 
 At present, **Artly** uses ``aptly repo publish`` only to create the repository
 and does not keep any **APTLY** information used during generation.
