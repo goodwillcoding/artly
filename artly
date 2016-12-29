@@ -16,7 +16,10 @@ set -o pipefail;
 TMP_SCRIPT_NAME=$(basename "${0}");
 # get full path of the script folder
 TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
-
+# full script path
+TMP_SCRIPT_PATH="${0}";
+# path to artly core folder
+TMP_ARTLY_CORE_FOLDER_PATH="";
 
 # ............................................................................ #
 # print script usage
@@ -35,6 +38,13 @@ Commands:
 
     make-debian-repository
         Create Debian repository.
+
+    document-debian-repository
+        Generate Debian repository with READMEs containing repository setup
+        instructions as well as HTML directory indexes for browsing.
+
+    publish-github-pages
+        Publish repository to GitHub Pages.
 
     help
         Print this usage.
@@ -89,15 +99,27 @@ function process_script_commands_and_arguments {
 
         make-key)
              ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
-             "${TMP_SCRIPT_FOLDER}/core/artly-make-key.sh" "$@";
+             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-make-key.sh" "$@";
              exit;
             ;;
 
         make-debian-repository)
              ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
-             "${TMP_SCRIPT_FOLDER}/core/artly-make-debian-repository.sh" "$@";
+             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-make-debian-repository.sh" "$@";
              exit;
             ;;
+
+        document-debian-repository)
+             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
+             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-document-debian-repository.sh" "$@";
+             exit;
+             ;;
+
+        publish-github-pages)
+             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
+             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-publish-github-pages.sh" "$@";
+             exit;
+             ;;
 
         --ubuntu-packages)
             ubuntu_packages;
@@ -152,7 +174,7 @@ function check_commands {
     cmd_exists_bash4_or_abort;
 
     # check for a whole set of commands
-    cmds_exists_or_abort "echo" "basename" "dirname";
+    cmds_exists_or_abort "echo" "basename" "dirname" "readlink";
 
 }
 
@@ -164,13 +186,39 @@ function ubuntu_packages {
 }
 
 
+# ........................................................................... #
+# find the core folder for artly. this is necessary because artly top level
+# wrapper is symlinked in various distributions
+# this will dereference artly path completely, and and look for core folder at
+# the final target parent folder
+# :return: echo out the full path to artly core
+function _find_core_folder {
+
+    local symlink_target;
+
+    # detected the artly "core/"" folder containing it's scripts
+    if [ -h "${TMP_SCRIPT_PATH}" ]; then
+        symlink_target=$(readlink -fn "${TMP_SCRIPT_PATH}");
+        echo $(dirname "${symlink_target}")/core;
+    else
+        echo "${TMP_SCRIPT_FOLDER}/core";
+    fi
+}
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
+# TMP_ARTLY_CORE_FOLDER_PATH set BEFORE 'begin' runs by _find_core_folder
+# because we need to find the core for utils.sh (and all other artly commands)
+TMP_ARTLY_CORE_FOLDER_PATH="$(_find_core_folder)";
+
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
 # import utils.sh
-if [ -f "${TMP_SCRIPT_FOLDER}/core/utils.sh" ]; then
-    source "${TMP_SCRIPT_FOLDER}/core/utils.sh"
+ls -la "${TMP_ARTLY_CORE_FOLDER_PATH}/utils.sh"
+if [ -f "${TMP_ARTLY_CORE_FOLDER_PATH}/utils.sh" ]; then
+    source "${TMP_ARTLY_CORE_FOLDER_PATH}/utils.sh"
 else
     echo "
-Could not load required '${TMP_SCRIPT_FOLDER}/core/utils.sh' module.$
+Could not load required '${TMP_ARTLY_CORE_FOLDER_PATH}/utils.sh' module.
 
 " >&2;
     exit 1;

@@ -96,12 +96,13 @@ function usage {
 
     echo "\
 ${script_display_name} - generate Debian repository with READMEs containing
-repository setup instruction as well as HTML directory indexes for browsing.
+repository setup instructions as well as HTML directory indexes for browsing.
 
 Usage: ${script_display_name} [OPTIONS]
 
 Make the Debian repository human friendly by generating READMEs with repository
-and HTML directory index so it can be browsed.
+with repository setup instructions and HTML directory index so it can be
+browsed.
 
 Options:
 
