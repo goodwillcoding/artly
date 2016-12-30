@@ -17,6 +17,22 @@ What **Artly** can do for you:
   be easily used in automation.
 * Create repositories from Debian packages located both on disk as well as
   those that need to be downloaded first over HTTP/FTP protocols.
+* Document Artly generated repositories with READMEs and HTML indexes
+  containing repository setup instructions.
+* Push repositories to GitHub Enterprise (or GitHub.com) to be serverd by
+  GitHub Pages.
+
+Demo
+====
+
+If a picture is worth a 1,000 words, a working demo should be at least a
+1,000,000.
+
+Checkout the demo repository that was created by **Artly** in 3 minutes
+following the instructions in `Quickstart`_ and
+`Publishing the Debian Repository to GitHub Pages`_ below.
+
+ * https://goodwillcoding.github.io/salt16-debian-repository/
 
 
 Installation
@@ -59,27 +75,46 @@ Let's create some keys and a create a small Debian repository with 3 different
 Debian sources: local package, local folder containing multiple packages and
 URLs to 2 Debian packages.
 
+1. Install **Artly** using `git clone method`
 
-1. Create demo playground folder.
+   Clone the repository:
 
    .. code-block:: shell
 
-       $ mkdir --parents /tmp/artly_demo
-       $ cd /tmp/artly_demo
+        $ git clone \
+            https://github.com/goodwillcoding/artly \
+            /tmp/artly_demo/artly
 
-2. Use installation instruction above to install **Artly** into the
-   ``/tmp/artly_demo/artly`` folder using ``git clone``.
+
+   Install pre-requisites
+
+   .. code:: shell
+
+       sudo $(/tmp/artly_demo/artly/artly --ubuntu-packages)
+
 
    At the end of the installation process you should be inside
    ``/tmp/artly_demo/`` folder and be able to run **Artly** using
    ``/tmp/artly_demo/artly/artly`` command.
+
+2. Create demo playground folder.
+
+   .. code-block:: shell
+
+       $ mkdir \
+           --parents \
+           /tmp/artly_demo
+
+       $ cd /tmp/artly_demo
 
 3. Download local packages, place one of them in ``debian_packages`` folder
    itself, and the rest in ``debian_packages/folder``.
 
    .. code-block:: shell
 
-       $ mkdir --parent /tmp/artly_demo/debian_packages/folder
+       $ mkdir \
+           --parent \
+           /tmp/artly_demo/debian_packages/folder
 
        $ wget \
            --no-clobber \
@@ -110,6 +145,15 @@ URLs to 2 Debian packages.
           $ sudo service haveged status
 
             * haveged is running
+
+       If it is not running you can install it:
+
+       .. code-block:: shell
+
+          $ sudo apt-get install haveged
+
+       Post install check if it is running using instructions above.
+
 
    Now generate the GPG key using **Artly** with our demo name, comment and
    email. The key is set to expire after 1 year.
@@ -156,8 +200,8 @@ URLs to 2 Debian packages.
        $ /tmp/artly_demo/artly/artly make-debian-repository \
            --output-folder /tmp/artly_demo/repository \
            --name "artly-demo" \
-           --component "main" \
            --distribution "xenial" \
+           --component "main" \
            --secret-key-file /tmp/artly_demo/keys/private.asc \
            --package-location "/tmp/artly_demo/debian_packages/folder" \
            --package-location "/tmp/artly_demo/debian_packages/python-support_1.0.14ubuntu2_all.deb" \
@@ -190,40 +234,184 @@ URLs to 2 Debian packages.
          drwxrwxr-x 3 user user 4.0K  pool
          -rw-rw-r-- 1 user user 3.8K  public.asc
 
-6. You can now host the ``/tmp/artly_demo/repository`` folder on using an HTTP
-   server (Apache, Nginx, etc). How to do so is outside of the scope of this
-   demo. Below we will assume you have already hosted and are serving the
-   repository on http://localhost.
+7. Install Apache2 server.
 
-   You can add the hosted repository to any Debian based machine using the
-   following commands:
-
-   Add ``artly-demo`` repository to your APT sources:
+   Install apache2 server package
 
    .. code-block:: shell
 
-       $ echo 'deb http://localhost/ xenial main' \
-         | sudo tee /etc/apt/sources.list.d/artly-demo.list
+       $ sudo apt-get install apache2
 
-         deb http://localhost/ xenial main
-
-   Add the repository public key to APT keyring:
+    Make sure it is running
 
    .. code-block:: shell
 
-       $ wget -q http://localhost/public.asc -O- \
-         | sudo apt-key add -
+      $ sudo service apache2 status
 
-         OK
+        * apache2 is running
 
-   Update the local package list:
+8. Document your repository with READMes for use by humans.
+
+   .. warning::
+
+       Instructions here are for basic hosting, INSECURE, non-https repository
+       hosting. These should be used for production.
 
    .. code-block:: shell
 
-       $ sudo apt-get update
+       $ /tmp/artly_demo/artly/artly document-debian-repository \
+           --source-folder /tmp/artly_demo/repository \
+           --output-folder /tmp/artly_demo/salt16-debian-repository \
+           --name "salt16" \
+           --title "Salt 16 Debian Repository" \
+           --url "http://localhost/salt16-debian-repository" \
+           --public-key-url "http://localhost/salt16-debian-repository/public.asc" \
+           --package "salt-master salt-minion" \
+           --style "html"
 
-   You can now install any packages in the repository using ``apt-get install``
-   command.
+       Created output folder: /tmp/artly_demo/salt16-debian-repository
+       Created work folder: /tmp/artly-document-debian-repository.1KwNstl80Z
+       Removed work folder: /tmp/artly-document-debian-repository.1KwNstl80Z
+       Repository Name            :  salt16
+       Repository Title           :  Salt 16 Debian Repository
+       Repository Folder          :  /tmp/artly_demo/salt16-debian-repository
+       Repository URL             :  http://localhost/salt16-debian-repository
+       Repository Public Key URL  :  http://localhost/salt16-debian-repository/public.asc
+       Repository KeyServer/KeyID :
+       Repository Package         :  salt-master salt-minion
+       Style                      :  html
+
+9. Copy the repostitoy into the Apache root.
+
+   .. code-block:: shell
+
+       $ sudo cp \
+           --recursive \
+           --force \
+           /tmp/artly_demo/salt16-debian-repository \
+           /var/www
+
+10. You can now add the hosted repository to your Debian/Ubuntu based machine
+
+    Visit http://localhost/salt16-debian-repository using your browser and
+    follow the instructions on the page to add your repository to your machine.
+
+   .. note::
+
+       http://localhost is specific to your machine. If you wish others to
+       access your repository you will need to make Apache available to the
+       outside. (It probably is by default, so watch out)
+
+11. Optionally, publish your repository to GitHub Pages
+
+     See section: `Publishing the Debian Repository to GitHub Pages`_
+
+
+Publishing the Debian Repository to GitHub Pages
+================================================
+
+**Artly** provides a ``publish-github-pages`` command to allow you to easily
+publish to GitHub Pages.
+
+1. Login to your GitHub.com account at https://github.com using a browser
+
+2. Create a new repository on GitHub.com named ``salt16-debian-repository``
+
+   .. warning::
+
+      Use a new repository and be aware that every time
+      ``publish-github-pages`` command run is uses ``git push --force``
+      destroying all the content and the commit history.
+
+   See Official GitHub.com Documentation on creating Github Repositories:
+   https://help.github.com/articles/create-a-repo/
+
+3. Make sure you have all the necessary configuration and permissions to use
+   ``git`` to push to commit to your GitHub repository.
+
+  How to do so is outside the scope of this tutorial. Please consult
+  official GitHub.com documentation
+
+
+4. Export your GitHub username into the MY_GITHUB_USERNAME variable below.
+   Replace ``"<username>`` with your username.
+
+
+   .. code-block:: shell
+
+       $ export MY_GITHUB_USERNAME="<username>"
+
+   For example, my username is ``goodwillcoding`` so my export command is
+
+   .. code-block:: shell
+
+       $ export MY_GITHUB_USERNAME="goodwillcoding"
+
+5. Document your repository with READMes for use by humans using GitHub Pages
+   style (``--style "github-page"``) argument.
+
+   .. code-block:: shell
+
+       $ /tmp/artly_demo/artly/artly document-debian-repository \
+           --source-folder /tmp/artly_demo/repository \
+           --output-folder /tmp/artly_demo/salt16-debian-repository.github \
+           --name "salt16" \
+           --title "Salt 16 Debian Repository" \
+           --url "http://${MY_GITHUB_USERNAME}.github.io/salt16-debian-repository" \
+           --public-key-url "http://${MY_GITHUB_USERNAME}.github.io/salt16-debian-repository/public.asc" \
+           --package "salt-master salt-minion" \
+           --style "github-pages"
+
+       Created output folder: /tmp/artly_demo/salt16-debian-repository.github
+       Created work folder: /tmp/artly-document-debian-repository.PMfEe1aOox
+       Removed work folder: /tmp/artly-document-debian-repository.PMfEe1aOox
+       Repository Name            :  salt16
+       Repository Title           :  Salt 16 Debian Repository
+       Repository Folder          :  /tmp/artly_demo/salt16-debian-repository.github
+       Repository URL             :  http://goodwillcoding.github.io/salt16-debian-repository
+       Repository Public Key URL  :  http://goodwillcoding.github.io/salt16-debian-repository/public.asc
+       Repository KeyServer/KeyID :
+       Repository Package         :  salt-master salt-minion
+       Style                      :  github-pages
+
+
+
+6. Push the Debian repository to your GitHub repository. You will need to
+   replace ``<username>`` in the command with your
+
+   .. code-block:: shell
+
+       $ /tmp/artly_demo/artly/artly publish-github-pages \
+           --source-folder /tmp/artly_demo/salt16-debian-repository.github \
+           --git-uri "git@github.com:${MY_GITHUB_USERNAME}/salt16-debian-repository.git" \
+           --author "${MY_GITHUB_USERNAME}" \
+           --email "${MY_GITHUB_USERNAME}@example.com" \
+           --title "Salt 16 Debian Repository"
+
+
+
+7. Publish your Debian repository to GitHub Pages itself.
+
+    .. note::
+
+       Configuring repository to publish to GitHub Pages as described below
+       only need to be done ONCE as settings are retained.
+
+    Go to GitHub.com ``salt16-debian-repository.git`` repository settings,
+    scroll to **GitHub Pages** section.
+
+    For GitHub Pages **Source** pick **master branch** from the dropdown and
+    press safe.
+
+    It will take a couple of minutes for the your repository's GitHub Pages
+    to be built.
+
+
+8. Add the hosted repository to your Debian/Ubuntu based machine
+
+    Visit ``https://<username>.github.io/salt16-debian-repository`` using your
+    browser and follow the instructions on the page to add your repository
+    to your machine.
 
 
 Security Concerns
