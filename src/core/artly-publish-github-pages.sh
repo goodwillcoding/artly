@@ -371,10 +371,10 @@ ${processed_args}" 1;
                 TMP_OPTION_DEBUG=1;
                 ;;
 
-            # show usage and quit with code 1
+            # show usage and quit with code 0
             --help | -h)
                 usage;
-                exit 1;
+                exit 0;
                 ;;
 
             --)

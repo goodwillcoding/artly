@@ -560,10 +560,10 @@ ${processed_args}" 1;
                 TMP_OPTION_DEBUG=1;
                 ;;
 
-            # show usage and quit with code 1
+            # show usage and quit with code 0
             --help | -h)
                 usage;
-                exit 1;
+                exit 0;
                 ;;
 
             --)
@@ -1403,16 +1403,16 @@ function print_repository_information {
         echo "repository-package-count:${TMP_IMPORTED_PACKAGES_COUNT}";
         echo "public-key:${TMP_PUBLIC_KEY_FILE}";
     else
-        echo "Repository Name            : ${TMP_OPTION_REPOSITORY_NAME}";
-        echo "Repository Distribution    : ${TMP_OPTION_REPOSITORY_DISTRIBUTION}";
-        echo "Repository Component       : ${TMP_OPTION_REPOSITORY_COMPONENT}";
-        echo "Repository Architectures   : ${TMP_OPTION_REPOSITORY_ARCHITECTURES}";
-        echo "Repository Folder          : ${TMP_OPTION_OUTPUT_FOLDER}";
-        echo "Repository Label           : ${TMP_OPTION_REPOSITORY_LABEL}";
-        echo "Repository Origin          : ${TMP_OPTION_REPOSITORY_ORIGIN}";
-        echo "GPG version                : $(gpg_version ${TMP_OPTION_GPG})";
-        echo "Public Key                 : ${TMP_PUBLIC_KEY_FILE}";
-        echo "Repository Package Count   : ${TMP_IMPORTED_PACKAGES_COUNT}";
+        echo "Repository Name           : ${TMP_OPTION_REPOSITORY_NAME}";
+        echo "Repository Distribution   : ${TMP_OPTION_REPOSITORY_DISTRIBUTION}";
+        echo "Repository Component      : ${TMP_OPTION_REPOSITORY_COMPONENT}";
+        echo "Repository Architectures  : ${TMP_OPTION_REPOSITORY_ARCHITECTURES}";
+        echo "Repository Folder         : ${TMP_OPTION_OUTPUT_FOLDER}";
+        echo "Repository Label          : ${TMP_OPTION_REPOSITORY_LABEL}";
+        echo "Repository Origin         : ${TMP_OPTION_REPOSITORY_ORIGIN}";
+        echo "GPG version               : $(gpg_version ${TMP_OPTION_GPG})";
+        echo "Public Key                : ${TMP_PUBLIC_KEY_FILE}";
+        echo "Repository Package Count  : ${TMP_IMPORTED_PACKAGES_COUNT}";
     fi
 }
 

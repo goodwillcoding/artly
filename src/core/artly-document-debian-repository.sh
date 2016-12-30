@@ -44,7 +44,7 @@ TMP_OPTION_REPOSITORY_URL="";
 # location of public key to put in the readme
 TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL="";
 # keyservers/keys
-TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY="";
+TMP_OPTION_REPOSITORY_SERVER_KEYID="";
 # repository packages to install to put in the readme
 TMP_OPTION_REPOSITORY_PACKAGE="";
 # style for repository documentation (html, github-pages, etc)
@@ -150,13 +150,17 @@ Options:
 
     -S, --style
         Optional, Style the README and the html for specific publishing target
-        Allowed values are: 'html', 'github-pages'. Default to 'html'.
+        Allowed values are: 'html', 'github-pages'. Defaults to 'html'.
 
         For 'github-pages' the readme file will be README.md since that is
         the only format GitHub supports for HTML files that displayed in
         as a readme as part of the repository. Also, add a note that
         GitHub Pages does support viewing of the files because of unsupported
         mime-types.
+
+    --machine-readable
+        Optional, print out colon separated output. This only prints out
+        repository information.
 
     --recreate
         Optional, delete previous output folder by the same name before
@@ -186,12 +190,6 @@ Options:
     -h, --help
         show help for this script.
 ";
-
-# TODO: keep machine readable here for now while we determine what's needed
-    # --machine-readable
-    #     Optional, print out colon separated output. This only prints out
-    #     repository information.
-
 
 }
 
@@ -326,6 +324,9 @@ function begin {
         remove_work_folder;
     fi
 
+    # print repository information
+    print_repository_information
+
 }
 
 
@@ -416,7 +417,7 @@ ${processed_args}" 1;
 
             # store repository keyserver public key for the readme
             --key-server-keyid | -K)
-                TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY="${2}";
+                TMP_OPTION_REPOSITORY_SERVER_KEYID="${2}";
                 shift;
                 ;;
 
@@ -468,10 +469,10 @@ ${processed_args}" 1;
                 TMP_OPTION_DEBUG=1;
                 ;;
 
-            # show usage and quit with code 1
+            # show usage and quit with code 0
             --help | -h)
                 usage;
-                exit 1;
+                exit 0;
                 ;;
 
             --)
@@ -546,15 +547,15 @@ function validate_and_default_arguments {
 
     # check if public key url is specified, if not abort with message
     if    [ "${TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL}" == "" ] \
-       && [ "${TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY}" == "" ]; then
+       && [ "${TMP_OPTION_REPOSITORY_SERVER_KEYID}" == "" ]; then
         abort "Please specify either a public key URL using \
 --public-key-url/-k or a keyserver and keyid using --key-server-keyid/-K" 1;
     fi
 
     # if keyserver keyid is specified, check if the keyserver:keyid has
     # only 1 ':' and if not abort
-    if [ "${TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY}" != "" ]; then
-        for key_pair in ${TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY}; do
+    if [ "${TMP_OPTION_REPOSITORY_SERVER_KEYID}" != "" ]; then
+        for key_pair in ${TMP_OPTION_REPOSITORY_SERVER_KEYID}; do
             keyserver_keyid_check=$(\
                 echo "${key_pair}" \
                 | ( grep -o ':' 2>/dev/null  || true ) \
@@ -890,7 +891,7 @@ ____EOF
     # count the methods so we know to include instruction for choosing a
     # specific methods
     read -a key_import_methods \
-        <<<"${TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL} ${TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY}";
+        <<<"${TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL} ${TMP_OPTION_REPOSITORY_SERVER_KEYID}";
 
     cat <<____EOF >> ${TMP_INDEX_EMBEDDED_README_FILE}
   </li>
@@ -932,9 +933,9 @@ ________EOF
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
     # generate html for each key server (if given)
-    if [ "${TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY}" != "" ]; then
+    if [ "${TMP_OPTION_REPOSITORY_SERVER_KEYID}" != "" ]; then
         # go over each keyserver:keyid and create an 'apt-key adv' for it
-        for key_pair in ${TMP_OPTION_REPOSITORY_PUBLIC_KEY_SERVER_KEY}; do
+        for key_pair in ${TMP_OPTION_REPOSITORY_SERVER_KEYID}; do
             # get keyserver and keyid
             key_server=$(echo "${key_pair}" | cut -d':' -f1)
             key_id=$(echo "${key_pair}" | cut -d':' -f2)
@@ -1474,6 +1475,32 @@ function copy_repository_to_output_folder {
         --no-target-directory \
         "${TMP_WORK_REPOSITORY_FOLDER}" \
         "${TMP_OPTION_OUTPUT_FOLDER}";
+}
+
+
+# ........................................................................... #
+# print out repository information
+function print_repository_information {
+
+    if [ ${TMP_OPTION_MACHINE_READABLE} -eq 1 ]; then
+        echo "repository-name:${TMP_OPTION_REPOSITORY_NAME}";
+        echo "repository-title:${TMP_OPTION_REPOSITORY_TITLE}";
+        echo "repository-folder:${TMP_OPTION_OUTPUT_FOLDER}";
+        echo "repository-url:${TMP_OPTION_REPOSITORY_URL}";
+        echo "repository-public-key-url:${TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL}";
+        echo "repository-keyserver-keyid:${TMP_OPTION_REPOSITORY_SERVER_KEYID}";
+        echo "repository-package:${TMP_OPTION_REPOSITORY_PACKAGE}";
+        echo "style:${TMP_OPTION_STYLE}";
+    else
+        echo "Repository Name            :  ${TMP_OPTION_REPOSITORY_NAME}";
+        echo "Repository Title           :  ${TMP_OPTION_REPOSITORY_TITLE}";
+        echo "Repository Folder          :  ${TMP_OPTION_OUTPUT_FOLDER}";
+        echo "Repository URL             :  ${TMP_OPTION_REPOSITORY_URL}";
+        echo "Repository Public Key URL  :  ${TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL}";
+        echo "Repository KeyServer/KeyID :  ${TMP_OPTION_REPOSITORY_SERVER_KEYID}";
+        echo "Repository Package         :  ${TMP_OPTION_REPOSITORY_PACKAGE}";
+        echo "Style                      :  ${TMP_OPTION_STYLE}";
+    fi
 }
 
 
