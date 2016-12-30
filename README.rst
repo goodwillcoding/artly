@@ -316,7 +316,7 @@ publish to GitHub Pages.
    :Warning:
 
        Use a new repository and be aware that every time
-       ``publish-github-pages`` command run is uses ``git push --force``
+       ``publish-github-pages`` command runs it uses ``git push --force``
        destroying all the content and the commit history.
 
    See Official GitHub.com Documentation on creating Github Repositories:
