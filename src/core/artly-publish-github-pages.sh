@@ -34,8 +34,6 @@ TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
 
 # ........................................................................... #
-# output folder
-TMP_OPTION_OUTPUT_FOLDER="";
 # repository source folder
 TMP_OPTION_SOURCE_FOLDER="";
 # repository git uri
@@ -112,6 +110,10 @@ Options:
     -t, --title
         Repository title. Used in the commit message.
 
+    --machine-readable
+        Optional, print out colon separated output. This only prints out
+        repository information.
+
     --work-folder <path>
         Optional, work folder path, needed to generate the repository. By
         default the work folder name is created by mktemp using following
@@ -135,11 +137,6 @@ Options:
     -h, --help
         show help for this script.
 ";
-
-# TODO: keep machine readable here for now while we determine what's needed
-    # --machine-readable
-    #     Optional, print out colon separated output. This only prints out
-    #     repository information.
 
 }
 
@@ -258,6 +255,9 @@ function begin {
     if [ ${TMP_OPTION_DEBUG} -eq 0 ]; then
         remove_work_folder;
     fi
+
+    # print repository information
+    print_repository_information;
 
 }
 
@@ -670,6 +670,24 @@ ${TMP_OPTION_REPOSITORY_GIT_URI}";
             origin \
             master;
 
+}
+
+
+# ........................................................................... #
+# print out repository information
+function print_repository_information {
+
+    if [ ${TMP_OPTION_MACHINE_READABLE} -eq 1 ]; then
+        echo "repository-git-uri:${TMP_OPTION_REPOSITORY_GIT_URI}";
+        echo "repository-commit-author:${TMP_OPTION_COMMIT_AUTHOR}";
+        echo "repository-commit-email:${TMP_OPTION_COMMIT_EMAIL}";
+        echo "repository-title:${TMP_OPTION_REPOSITORY_TITLE}";
+    else
+        echo "Repository Git URI       :  ${TMP_OPTION_REPOSITORY_GIT_URI}";
+        echo "Repository Commit Author :  ${TMP_OPTION_COMMIT_AUTHOR}";
+        echo "Repository Commit Email  :  ${TMP_OPTION_COMMIT_EMAIL}";
+        echo "Repository Title         :  ${TMP_OPTION_REPOSITORY_TITLE}";
+    fi
 }
 
 

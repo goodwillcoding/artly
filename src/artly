@@ -182,7 +182,8 @@ function check_commands {
 # ............................................................................ #
 # ubuntu packages requirewd by artly
 function ubuntu_packages {
-    echo "apt-get install coreutils findutils sed gnupg wget aptly jq haveged";
+    echo "apt-get install coreutils findutils sed gnupg wget aptly jq haveged \
+git";
 }
 
 

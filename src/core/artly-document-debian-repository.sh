@@ -325,7 +325,7 @@ function begin {
     fi
 
     # print repository information
-    print_repository_information
+    print_repository_information;
 
 }
 
