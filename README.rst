@@ -22,10 +22,11 @@ What **Artly** can do for you:
 * Push repositories to GitHub Enterprise (or GitHub.com) to be serverd by
   GitHub Pages.
 
+
 Demo
 ====
 
-If a picture is worth a 1,000 words, a working demo should be at least a
+If a picture is worth a 1,000 words, a working demo should be worth at least a
 1,000,000.
 
 Checkout the demo repository that was created by **Artly** in 3 minutes
@@ -57,9 +58,9 @@ repository manager**.
 
 3. Print out which packages you will need as prerequisites of **Artly**
 
-   .. code:: shell
+     .. code:: shell
 
-       $ ./artly --ubuntu-packages
+         $ ./artly --ubuntu-packages
 
    If you trust the output then you can run the install with sudo.
 
@@ -86,7 +87,7 @@ URLs to 2 Debian packages.
             /tmp/artly_demo/artly
 
 
-   Install pre-requisites
+   Install pre-requisites on Ubuntu.
 
    .. code:: shell
 
@@ -104,7 +105,6 @@ URLs to 2 Debian packages.
        $ mkdir \
            --parents \
            /tmp/artly_demo
-
        $ cd /tmp/artly_demo
 
 3. Download local packages, place one of them in ``debian_packages`` folder
@@ -134,28 +134,7 @@ URLs to 2 Debian packages.
 4. Create new GPG keys using **Artly** and place it in ``/tmp/artly_demo/keys``
    folder.
 
-   .. note::
-
-       During the installation the ``haveged`` entropy generator should have
-       already been installed and started as a service. You can check it by
-       running the following command:
-
-       .. code-block:: shell
-
-          $ sudo service haveged status
-
-            * haveged is running
-
-       If it is not running you can install it:
-
-       .. code-block:: shell
-
-          $ sudo apt-get install haveged
-
-       Post install check if it is running using instructions above.
-
-
-   Now generate the GPG key using **Artly** with our demo name, comment and
+   Let's generate the GPG key using **Artly** with our demo name, comment and
    email. The key is set to expire after 1 year.
 
    .. code-block:: shell
@@ -163,7 +142,7 @@ URLs to 2 Debian packages.
        $ /tmp/artly_demo/artly/artly make-key \
            --output-folder /tmp/artly_demo/keys \
            --name-real "Art Ly" \
-           --name-comment "Key used to sign a demo debian repository" \
+           --name-comment "Key used to sign Artly demo debian repository" \
            --name-email "artly@example.com" \
            --expire-date 1y
 
@@ -234,7 +213,18 @@ URLs to 2 Debian packages.
          drwxrwxr-x 3 user user 4.0K  pool
          -rw-rw-r-- 1 user user 3.8K  public.asc
 
-7. Install Apache2 server.
+6. Publishing the repository
+
+   You can now publish your repository in a number of ways:
+
+   a. `Publishing the Debian Repository to a Local Apache Server`_
+   b. `Publishing the Debian Repository to GitHub Pages`_
+
+
+Publishing the Debian Repository to a Local Apache Server
+=========================================================
+
+1. Install Apache2 server.
 
    Install apache2 server package
 
@@ -250,12 +240,8 @@ URLs to 2 Debian packages.
 
         * apache2 is running
 
-8. Document your repository with READMes for use by humans.
+2. Document your repository with READMes for use by humans.
 
-   .. warning::
-
-       Instructions here are for basic hosting, INSECURE, non-https repository
-       hosting. These should be used for production.
 
    .. code-block:: shell
 
@@ -281,7 +267,17 @@ URLs to 2 Debian packages.
        Repository Package         :  salt-master salt-minion
        Style                      :  html
 
-9. Copy the repostitoy into the Apache root.
+   :Warning:
+
+       Instructions here are for basic, **INSECURE**, non-HTTPS hosting. While
+       that is fine for the repository itself as it is signed by the GPG key,
+       the Public GPG key itself should be hosted on HTTPS server to avoid
+       ``man-in-the-middle`` attacks.
+
+       If your key is hosted on a GPG keyserver you can also use the
+       ``--key-server-keyid`` options to provide a KeyServer and KeyID.
+
+3. Copy the Debian repostitory into the Apache root.
 
    .. code-block:: shell
 
@@ -291,18 +287,18 @@ URLs to 2 Debian packages.
            /tmp/artly_demo/salt16-debian-repository \
            /var/www
 
-10. You can now add the hosted repository to your Debian/Ubuntu based machine
+4. You can now add the hosted repository to your Debian/Ubuntu based machine
 
     Visit http://localhost/salt16-debian-repository using your browser and
     follow the instructions on the page to add your repository to your machine.
 
-   .. note::
+   :Warning:
 
        http://localhost is specific to your machine. If you wish others to
        access your repository you will need to make Apache available to the
        outside. (It probably is by default, so watch out)
 
-11. Optionally, publish your repository to GitHub Pages
+5. Optionally, publish your repository to GitHub Pages
 
      See section: `Publishing the Debian Repository to GitHub Pages`_
 
@@ -317,11 +313,11 @@ publish to GitHub Pages.
 
 2. Create a new repository on GitHub.com named ``salt16-debian-repository``
 
-   .. warning::
+   :Warning:
 
-      Use a new repository and be aware that every time
-      ``publish-github-pages`` command run is uses ``git push --force``
-      destroying all the content and the commit history.
+       Use a new repository and be aware that every time
+       ``publish-github-pages`` command run is uses ``git push --force``
+       destroying all the content and the commit history.
 
    See Official GitHub.com Documentation on creating Github Repositories:
    https://help.github.com/articles/create-a-repo/
@@ -329,13 +325,11 @@ publish to GitHub Pages.
 3. Make sure you have all the necessary configuration and permissions to use
    ``git`` to push to commit to your GitHub repository.
 
-  How to do so is outside the scope of this tutorial. Please consult
-  official GitHub.com documentation
+   Consult official GitHub.com documentation if you are not sure how.
 
 
 4. Export your GitHub username into the MY_GITHUB_USERNAME variable below.
    Replace ``"<username>`` with your username.
-
 
    .. code-block:: shell
 
@@ -357,8 +351,8 @@ publish to GitHub Pages.
            --output-folder /tmp/artly_demo/salt16-debian-repository.github \
            --name "salt16" \
            --title "Salt 16 Debian Repository" \
-           --url "http://${MY_GITHUB_USERNAME}.github.io/salt16-debian-repository" \
-           --public-key-url "http://${MY_GITHUB_USERNAME}.github.io/salt16-debian-repository/public.asc" \
+           --url "https://${MY_GITHUB_USERNAME}.github.io/salt16-debian-repository" \
+           --public-key-url "https://${MY_GITHUB_USERNAME}.github.io/salt16-debian-repository/public.asc" \
            --package "salt-master salt-minion" \
            --style "github-pages"
 
@@ -368,13 +362,11 @@ publish to GitHub Pages.
        Repository Name            :  salt16
        Repository Title           :  Salt 16 Debian Repository
        Repository Folder          :  /tmp/artly_demo/salt16-debian-repository.github
-       Repository URL             :  http://goodwillcoding.github.io/salt16-debian-repository
-       Repository Public Key URL  :  http://goodwillcoding.github.io/salt16-debian-repository/public.asc
+       Repository URL             :  https://goodwillcoding.github.io/salt16-debian-repository
+       Repository Public Key URL  :  https://goodwillcoding.github.io/salt16-debian-repository/public.asc
        Repository KeyServer/KeyID :
        Repository Package         :  salt-master salt-minion
        Style                      :  github-pages
-
-
 
 6. Push the Debian repository to your GitHub repository. You will need to
    replace ``<username>`` in the command with your
@@ -388,8 +380,6 @@ publish to GitHub Pages.
            --email "${MY_GITHUB_USERNAME}@example.com" \
            --title "Salt 16 Debian Repository"
 
-
-
 7. Publish your Debian repository to GitHub Pages itself.
 
     .. note::
@@ -397,33 +387,32 @@ publish to GitHub Pages.
        Configuring repository to publish to GitHub Pages as described below
        only need to be done ONCE as settings are retained.
 
-    Go to GitHub.com ``salt16-debian-repository.git`` repository settings,
-    scroll to **GitHub Pages** section.
+   Go to GitHub.com ``salt16-debian-repository.git`` repository settings,
+   scroll to **GitHub Pages** section.
 
-    For GitHub Pages **Source** pick **master branch** from the dropdown and
-    press safe.
+   For GitHub Pages **Source** pick **master branch** from the dropdown and
+   press safe.
 
-    It will take a couple of minutes for the your repository's GitHub Pages
-    to be built.
-
+   It will take a couple of minutes for the your repository's GitHub Pages
+   to be built.
 
 8. Add the hosted repository to your Debian/Ubuntu based machine
 
-    Visit ``https://<username>.github.io/salt16-debian-repository`` using your
-    browser and follow the instructions on the page to add your repository
-    to your machine.
+   Visit ``https://<username>.github.io/salt16-debian-repository`` using your
+   browser and follow the instructions on the page to add your repository
+   to your machine.
 
 
 Security Concerns
 =================
 
-:Concern GPG keys generated by **Artly** are not password protected:
+:GPG keys generated by **Artly** are not password protected:
 
     **Artly** targeted usage is creating repositories using unattended
     automation. Such automation should take place in a relatively controlled
     and secure environment. Even if the private key is password protected the
-    passphrase is likely to be as easily accessed as the private key itself on
-    the compromised system.
+    passphrase is likely to be as easily accessed as the password file used to
+    unlock the key if the system it is on is compromised.
 
     In such cases
     `GPG revoke certificates <https://www.gnupg.org/gph/en/manual/c14.html>`_
@@ -437,7 +426,8 @@ Security Concerns
         `Square's KeyWiz <https://square.github.io/keywhiz/>`_ and may need to
         re-adressed.
 
-:**Concern** GPG keys are put in temporary folders during **Artly** workflow:
+:GPG keys are put in temporary folders during **Artly** workflow:
+
     **Artly** workflow includes creation of keys and keyrings which are placed,
     for a short period of time, in temporary work folders. The work folders are
     randomly named and created inside ``/tmp`` which is traditionally

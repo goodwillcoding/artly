@@ -7,9 +7,6 @@
 #
 # ########################################################################### #
 
-# TODO: add argument for specifying keyserver/keyid
-
-
 # turn on tracing of error, this will bubble up all the error codes
 # basically this allows the ERR trap is inherited by shell functions
 set -o errtrace;
@@ -136,17 +133,25 @@ Options:
 
     -K, --key-server-keyid
         Semi-optional, keyserver and keyid key the repository is signed with.
+        Value format is keyserver and keyid separated by sing colon.
+
+        Example:
+
+          --key-server-keyid 'keys.gnupg.net:8507EFB5'
 
         Multiple keyservers:keyids can be specified, with parameter quoted
         keyserver:keyid pair single space separated.
-        (Example: -K \"keys.gnupg.net:8507EFB5 keyserver.ubuntu.com:8507EFA5\")
+
+        Example:
+
+          -K 'keys.gnupg.net:8507EFB5 keyserver.ubuntu.com:8507EFA5'
 
         Note: at least 1 public-key-url or 1 key-server-keyid should specified.
 
     -p, --package
         Optional, package available to the user to install.
         Multiple packages can be specified, with parameter quoted and packages
-        single space separated. (Example: --packages \"python2.7 ncdu mc\")
+        single space separated. (Example: --packages 'python2.7 ncdu mc')
 
     -S, --style
         Optional, Style the README and the html for specific publishing target

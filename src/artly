@@ -51,8 +51,13 @@ Commands:
 
 Options:
 
+    --debian-packages
+        Print \"apt-get install\" with all prerequisite system packages
+        required to run Artly on Debian.
+
     --ubuntu-packages
-        Print \"apt-get install\" with all packages required by artly.
+        Print \"apt-get install\" with all prerequisite system packages
+        required to run Artly on Ubuntu.
 
     -h, --help
         Print this usage.
@@ -126,10 +131,9 @@ function process_script_commands_and_arguments {
             exit;
             ;;
 
-
         --help | -h | help)
             usage;
-            exit 1;
+            exit;
             ;;
 
         --)
@@ -166,6 +170,7 @@ function process_script_commands_and_arguments {
 }
 
 
+# ............................................................................ #
 # checks for all the commands required for setup and activate
 # this does not include the python commands we install
 function check_commands {
