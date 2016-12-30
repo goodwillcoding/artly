@@ -1000,11 +1000,11 @@ function print_key_information {
         echo "keyid:${keyid}";
         echo "keyid-file:${TMP_KEYID_FILE}";
     else
-        echo "Private key: ${TMP_PRIVATE_KEY_FILE}";
-        echo "Public key : ${TMP_PUBLIC_KEY_FILE}";
-        echo "KeyID      : ${keyid}";
-        echo "KeyID file : ${TMP_KEYID_FILE}";
-        echo "GPG version: $(gpg_version ${TMP_OPTION_GPG})";
+        log_unquiet "Private key: ${TMP_PRIVATE_KEY_FILE}";
+        log_unquiet "Public key : ${TMP_PUBLIC_KEY_FILE}";
+        log_unquiet "KeyID      : ${keyid}";
+        log_unquiet "KeyID file : ${TMP_KEYID_FILE}";
+        log_unquiet "GPG version: $(gpg_version ${TMP_OPTION_GPG})";
     fi
 
 }

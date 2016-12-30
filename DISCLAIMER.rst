@@ -2,7 +2,8 @@ DISCLAIMER
 ==========
 
 Artly's publish-github-pages tool was built by the author for use with GitHub
-Enterprise, a paid and self hosted instance of GitHub.
+Enterprise, a paid and self hosted instance of GitHub to which the disclaimer
+below does not apply.
 
 While GitHub.com is very generous with allowing hosting of releases of various
 open source project, usage of GitHub Pages in this manet though similar to

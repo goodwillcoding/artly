@@ -858,11 +858,12 @@ function print_keyring_information {
         echo "secret-keyring:${secret_keyring}";
         echo "imported-keyid:${TMP_KEYID}";
     else
-        echo "Keyring        : ${keyring}";
-        echo "Secret Keyring : ${secret_keyring}";
-        echo "Imported KeyID : ${TMP_KEYID}";
-        echo "GPG version    : $(gpg_version ${TMP_OPTION_GPG})";
+        log_unquiet "Keyring        : ${keyring}";
+        log_unquiet "Secret Keyring : ${secret_keyring}";
+        log_unquiet "Imported KeyID : ${TMP_KEYID}";
+        log_unquiet "GPG version    : $(gpg_version ${TMP_OPTION_GPG})";
     fi
+
 }
 
 

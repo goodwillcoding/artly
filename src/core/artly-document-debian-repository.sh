@@ -1492,14 +1492,14 @@ function print_repository_information {
         echo "repository-package:${TMP_OPTION_REPOSITORY_PACKAGE}";
         echo "style:${TMP_OPTION_STYLE}";
     else
-        echo "Repository Name            :  ${TMP_OPTION_REPOSITORY_NAME}";
-        echo "Repository Title           :  ${TMP_OPTION_REPOSITORY_TITLE}";
-        echo "Repository Folder          :  ${TMP_OPTION_OUTPUT_FOLDER}";
-        echo "Repository URL             :  ${TMP_OPTION_REPOSITORY_URL}";
-        echo "Repository Public Key URL  :  ${TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL}";
-        echo "Repository KeyServer/KeyID :  ${TMP_OPTION_REPOSITORY_SERVER_KEYID}";
-        echo "Repository Package         :  ${TMP_OPTION_REPOSITORY_PACKAGE}";
-        echo "Style                      :  ${TMP_OPTION_STYLE}";
+        log_unquiet "Repository Name            :  ${TMP_OPTION_REPOSITORY_NAME}";
+        log_unquiet "Repository Title           :  ${TMP_OPTION_REPOSITORY_TITLE}";
+        log_unquiet "Repository Folder          :  ${TMP_OPTION_OUTPUT_FOLDER}";
+        log_unquiet "Repository URL             :  ${TMP_OPTION_REPOSITORY_URL}";
+        log_unquiet "Repository Public Key URL  :  ${TMP_OPTION_REPOSITORY_PUBLIC_KEY_URL}";
+        log_unquiet "Repository KeyServer/KeyID :  ${TMP_OPTION_REPOSITORY_SERVER_KEYID}";
+        log_unquiet "Repository Package         :  ${TMP_OPTION_REPOSITORY_PACKAGE}";
+        log_unquiet "Style                      :  ${TMP_OPTION_STYLE}";
     fi
 }
 

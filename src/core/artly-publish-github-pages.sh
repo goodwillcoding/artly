@@ -48,6 +48,8 @@ TMP_OPTION_REPOSITORY_TITLE="";
 TMP_OPTION_WORK_FOLDER="";
 # machine readable output flag
 TMP_OPTION_MACHINE_READABLE=0;
+# suppress disclaimer
+TMP_OPTION_SUPPRESS_DISCLAIMER=0;
 
 TMP_OPTION_VERBOSE=0;
 TMP_OPTION_QUIET=0;
@@ -94,7 +96,8 @@ IMPORTANT:
 DISCLAIMER:
 
   Artly's publish-github-pages tool was built by the author for use with
-  GitHub Enterprise, a paid and self hosted instance of GitHub.
+  GitHub Enterprise, a paid and self hosted instance of GitHub to which the
+  disclaimer below does not apply.
 
   While GitHub.com is very generous with allowing hosting of releases of
   various open source project, usage of GitHub Pages in this manet though
@@ -137,6 +140,15 @@ Options:
         Optional, work folder path, needed to generate the repository. By
         default the work folder name is created by mktemp using following
         template \"${TMP_WORK_FOLDER_NAME_TEMPLATE}\".
+
+    --suppress-disclaimer
+        Optional, do not print warning about GitHub.com GitHub Pages.
+
+        IMPORTANT: By using this flag you acknowledge you read the disclaimer
+        that comes bundled with Artly.
+
+        To see the disclaimer run see ${script_display_name} --help or
+        reade DISCLAIMER.rst
 
     -v, --verbose
         Optional, turn on verbose output.
@@ -309,7 +321,8 @@ function process_script_arguments {
 
     short_args="s: u: n: a: e: t: v q h";
     long_args+="source-folder: git-uri: name: author: email: title: ";
-    long_args+="machine-readable work-folder: verbose quiet debug help";
+    long_args+="machine-readable suppress-disclaimer work-folder: verbose ";
+    long_args+="quiet debug help";
 
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
@@ -362,6 +375,11 @@ ${processed_args}" 1;
             # store machine readable flag
             --machine-readable)
                 TMP_OPTION_MACHINE_READABLE=1;
+                ;;
+
+            # store the suppress disclaimer flag
+            --suppress-disclaimer)
+                TMP_OPTION_SUPPRESS_DISCLAIMER=1;
                 ;;
 
             # store work folder path
@@ -701,14 +719,24 @@ function print_repository_information {
         echo "repository-commit-email:${TMP_OPTION_COMMIT_EMAIL}";
         echo "repository-title:${TMP_OPTION_REPOSITORY_TITLE}";
     else
-        echo "Repository Git URI       :  ${TMP_OPTION_REPOSITORY_GIT_URI}";
-        echo "Repository Commit Author :  ${TMP_OPTION_COMMIT_AUTHOR}";
-        echo "Repository Commit Email  :  ${TMP_OPTION_COMMIT_EMAIL}";
-        echo "Repository Title         :  ${TMP_OPTION_REPOSITORY_TITLE}";
+        log_unquiet "Repository Git URI       :  ${TMP_OPTION_REPOSITORY_GIT_URI}";
+        log_unquiet "Repository Commit Author :  ${TMP_OPTION_COMMIT_AUTHOR}";
+        log_unquiet "Repository Commit Email  :  ${TMP_OPTION_COMMIT_EMAIL}";
+        log_unquiet "Repository Title         :  ${TMP_OPTION_REPOSITORY_TITLE}";
     fi
 
-    echo "Warning: Please read DISCLAIMER.rst that comes with Artly regarding \
-usage of GitHub.com GitHub Pages for hosting the repositories.">&2;
+    # show the disclaimer if it is not suppressed
+    if [ ${TMP_OPTION_SUPPRESS_DISCLAIMER} -eq 0 ]; then
+        cat <<________EOF >&2
+DISCLAIMER
+
+Please read DISCLAIMER regarding usage of this tool with GitHub.com GitHub
+Pages. To see the disclaimer see this script help screen using '--help' or read
+the DISCLAIMER.rst bundled with Artly distribution.
+
+________EOF
+    fi
+
 }
 
 
