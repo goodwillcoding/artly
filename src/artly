@@ -213,7 +213,6 @@ TMP_ARTLY_CORE_FOLDER_PATH="$(_find_core_folder)";
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
 # import utils.sh
-ls -la "${TMP_ARTLY_CORE_FOLDER_PATH}/utils.sh"
 if [ -f "${TMP_ARTLY_CORE_FOLDER_PATH}/utils.sh" ]; then
     source "${TMP_ARTLY_CORE_FOLDER_PATH}/utils.sh"
 else
