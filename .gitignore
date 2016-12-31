@@ -1,3 +1,7 @@
+# artly cruft
 /tmp
 /README.html
 /CHANGES.html
+
+# sublime cruft
+/*.sublime-*
