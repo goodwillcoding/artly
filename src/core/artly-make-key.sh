@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+
+# ............................................................................ #
 # Prerequisites:
 # - gnu utils (apt-get install coreutils)
 # - find (apt-get install findutils)
@@ -7,6 +9,8 @@
 # - gpg, GPG key creator (apt-get install gnupg)
 # - haveged, entropy generator (apt-get install haveged)
 
+
+# ............................................................................ #
 # turn on tracing of error, this will bubble up all the error codes
 # basically this allows the ERR trap is inherited by shell functions
 set -o errtrace;
@@ -19,14 +23,17 @@ set -o pipefail;
 # debugging
 #set -o xtrace;
 
+
+# ............................................................................ #
 # get script name
 TMP_SCRIPT_NAME=$(basename "${0}");
 # get full path of the script folder
 TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
-
 # artly plugin display name
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
 
+
+# ............................................................................ #
 # output folder
 TMP_OPTION_OUTPUT_FOLDER="";
 # gpg key type
@@ -81,6 +88,7 @@ TMP_KEYID_FILE="";
 # error trapping removing the folder when we did not create it
 # default to 0 so this way we do not remove the folder
 TMP_CREATED_OUTPUT_FOLDER=0;
+
 
 # ............................................................................ #
 # print script usage
@@ -220,8 +228,8 @@ function trap_handler {
     local frame_expression;
     local indent="";
 
-    # clear ERR trap so we do not hit recusions
-    trap - ERR EXIT INT TERM;
+    # clear all traps so we do not hit recusions
+    clear_error_traps;
 
     if [ "${error_signal}" == "ERR" ]; then
         # print out error code
@@ -265,6 +273,14 @@ folders as needed.">&2;
             remove_temporary_directories_and_files;
         fi
     fi
+}
+
+
+# ............................................................................ #
+# clear all (ERR EXIT INT TERM) error traps
+function clear_error_traps {
+    # clear all traps so we do not hit recusions
+    trap - ERR EXIT INT TERM;
 }
 
 
@@ -339,6 +355,7 @@ function process_script_arguments {
 
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
+        clear_error_traps;
         usage 1>&2;
         echo "No argument givens">&2;
         exit 2;
@@ -462,6 +479,7 @@ ${processed_args}" 1;
                 # there should not be any trailing params
                 if [ "${#}" -gt 0 ]; then
                     # print usage to stderr since no valid command was provided
+                    clear_error_traps;
                     usage 1>&2;
                     echo "Unknown arguments(s) '$@' given">&2;
                     exit 2;
@@ -473,7 +491,8 @@ ${processed_args}" 1;
                 ;;
 
             -*)
-                # print usage to stderr since no valid command was provided
+                # print usage to stderr since unknown arguments were provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "Unknown argument(s) '${1}' given.">&2;
                 exit 2;
@@ -481,6 +500,7 @@ ${processed_args}" 1;
 
             *)
                 # print usage to stderr since no valid command was provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "No arguments given">&2;
                 exit 2;

@@ -166,8 +166,8 @@ function trap_handler {
     local frame_expression;
     local indent="";
 
-    # clear ERR trap so we do not hit recusions
-    trap - ERR EXIT INT TERM;
+    # clear all traps so we do not hit recusions
+    clear_error_traps;
 
     if [ "${error_signal}" == "ERR" ]; then
         # print out error code
@@ -211,6 +211,14 @@ folders as needed.">&2;
             remove_temporary_directories_and_files;
         fi
     fi
+}
+
+
+# ............................................................................ #
+# clear all (ERR EXIT INT TERM) error traps
+function clear_error_traps {
+    # clear all traps so we do not hit recusions
+    trap - ERR EXIT INT TERM;
 }
 
 
@@ -319,6 +327,7 @@ function process_script_arguments {
 
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
+        clear_error_traps;
         usage 1>&2;
         echo "No arguments given">&2;
         exit 2;
@@ -400,6 +409,7 @@ ${processed_args}" 1;
                 # there should not be any trailing params
                 if [ "${#}" -gt 0 ]; then
                     # print usage to stderr since no valid command was provided
+                    clear_error_traps;
                     usage 1>&2;
                     echo "Unknown arguments(s) '$@' given">&2;
                     exit 2;
@@ -412,6 +422,7 @@ ${processed_args}" 1;
 
             -*)
                 # print usage to stderr since no valid command was provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "Unknown argument(s) '${1}' given.">&2;
                 exit 2;
@@ -419,6 +430,7 @@ ${processed_args}" 1;
 
             *)
                 # print usage to stderr since no valid command was provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "No arguments given.">&2;
                 exit 2;

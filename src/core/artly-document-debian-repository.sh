@@ -7,6 +7,8 @@
 #
 # ########################################################################### #
 
+
+# ............................................................................ #
 # turn on tracing of error, this will bubble up all the error codes
 # basically this allows the ERR trap is inherited by shell functions
 set -o errtrace;
@@ -19,6 +21,7 @@ set -o pipefail;
 # debugging
 #set -o xtrace;
 
+
 # ........................................................................... #
 # get script name
 TMP_SCRIPT_NAME=$(basename "${0}");
@@ -26,6 +29,7 @@ TMP_SCRIPT_NAME=$(basename "${0}");
 TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
 # artly plugin display name, extracted from environment otherwise set to ""
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
+
 
 # ........................................................................... #
 # output folder
@@ -67,17 +71,15 @@ TMP_CP_VERBOSITY="";
 TMP_WORK_FOLDER_NAME_TEMPLATE="/tmp/artly-document-debian-repository.XXXXXXXXXX";
 # work repository folder
 TMP_WORK_REPOSITORY_FOLDER="";
-
 # the temporary readme file content of which will be embedded into the index
 TMP_INDEX_EMBEDDED_README_FILE="";
-
 # static assets used in html generation (css files and so on)
 TMP_STATIC_ASSETS_FOLDER="${TMP_SCRIPT_FOLDER}/_static";
-
 # flag to track if we created the output folder, necessary because of the
 # error trapping removing the folder when we did not create it
 # default to 0 so this way we do not remove the folder
 TMP_CREATED_OUTPUT_FOLDER=0;
+
 
 # ........................................................................... #
 # print script usage
@@ -221,7 +223,7 @@ function trap_handler {
     local indent="";
 
     # clear ERR trap so we do not hit recusions
-    trap - ERR EXIT INT TERM;
+    clear_error_traps;
 
     if [ "${error_signal}" == "ERR" ]; then
         # print out error code
@@ -267,6 +269,13 @@ folders as needed.">&2;
     fi
 }
 
+
+# ............................................................................ #
+# clear all (ERR EXIT INT TERM) error traps
+function clear_error_traps {
+    # clear all traps so we do not hit recusions
+    trap - ERR EXIT INT TERM;
+}
 
 
 # ............................................................................ #
@@ -369,6 +378,7 @@ function process_script_arguments {
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
         # print usage to stderr since no valid command was provided
+        clear_error_traps;
         usage 1>&2;
         echo "No arguments given">&2;
         exit 2;
@@ -486,6 +496,7 @@ ${processed_args}" 1;
                 # there should not be any trailing params
                 if [ "${#}" -gt 0 ]; then
                     # print usage to stderr since no valid command was provided
+                    clear_error_traps;
                     usage 1>&2;
                     echo "Unknown arguments(s) '$@' given">&2;
                     exit 2;
@@ -498,6 +509,7 @@ ${processed_args}" 1;
 
             -*)
                 # print usage to stderr since no valid command was provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "Unknown argument(s) '${1}' given.">&2;
                 exit 2;
@@ -505,6 +517,7 @@ ${processed_args}" 1;
 
             *)
                 # print usage to stderr since no valid command was provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "No arguments given.">&2;
                 exit 2;

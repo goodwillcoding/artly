@@ -13,6 +13,7 @@
 # ########################################################################### #
 
 
+# ............................................................................ #
 # turn on tracing of error, this will bubble up all the error codes
 # basically this allows the ERR trap is inherited by shell functions
 set -o errtrace;
@@ -25,6 +26,7 @@ set -o pipefail;
 # debugging
 #set -o xtrace;
 
+
 # ........................................................................... #
 # get script name
 TMP_SCRIPT_NAME=$(basename "${0}");
@@ -32,6 +34,7 @@ TMP_SCRIPT_NAME=$(basename "${0}");
 TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
 # artly plugin display name, extracted from environment otherwise set to ""
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
+
 
 # ........................................................................... #
 # repository source folder
@@ -65,9 +68,9 @@ TMP_GIT_INIT_VERBOSITY="";
 TMP_GIT_ADD_VERBOSITY="";
 TMP_GIT_COMMIT_VERBOSITY="";
 TMP_GIT_PUSH_VERBOSITY="";
-
 # template for the work folder name
 TMP_WORK_FOLDER_NAME_TEMPLATE="/tmp/artly-publish-github-pages.XXXXXXXXXX";
+
 
 # ........................................................................... #
 # print script usage
@@ -193,8 +196,8 @@ function trap_handler {
     local frame_expression;
     local indent="";
 
-    # clear ERR trap so we do not hit recusions
-    trap - ERR EXIT INT TERM;
+    # clear all traps so we do not hit recusions
+    clear_error_traps;
 
     if [ "${error_signal}" == "ERR" ]; then
         # print out error code
@@ -238,6 +241,14 @@ folders as needed.">&2;
             remove_temporary_directories_and_files;
         fi
     fi
+}
+
+
+# ............................................................................ #
+# clear all (ERR EXIT INT TERM) error traps
+function clear_error_traps {
+    # clear all traps so we do not hit recusions
+    trap - ERR EXIT INT TERM;
 }
 
 
@@ -327,6 +338,7 @@ function process_script_arguments {
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
         # print usage to stderr since no valid command was provided
+        clear_error_traps;
         usage 1>&2;
         echo "No arguments given">&2;
         exit 2;
@@ -410,6 +422,7 @@ ${processed_args}" 1;
 
             # show usage and quit with code 0
             --help | -h)
+                clear_error_traps;
                 usage;
                 exit 0;
                 ;;
@@ -420,6 +433,7 @@ ${processed_args}" 1;
                 # there should not be any trailing params
                 if [ "${#}" -gt 0 ]; then
                     # print usage to stderr since no valid command was provided
+                    clear_error_traps;
                     usage 1>&2;
                     echo "Unknown arguments(s) '$@' given">&2;
                     exit 2;
@@ -431,7 +445,8 @@ ${processed_args}" 1;
                 ;;
 
             -*)
-                # print usage to stderr since no valid command was provided
+                # print usage to stderr since unknown arguments were given
+                clear_error_traps;
                 usage 1>&2;
                 echo "Unknown argument(s) '${1}' given.">&2;
                 exit 2;
@@ -439,6 +454,7 @@ ${processed_args}" 1;
 
             *)
                 # print usage to stderr since no valid command was provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "No arguments given.">&2;
                 exit 2;

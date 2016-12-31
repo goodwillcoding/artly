@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# ............................................................................ #
 # Prerequisites:
 # - gnu utils (apt-get install coreutils)
 # - find (apt-get install findutils)
@@ -13,6 +14,8 @@
 # TODO: what happens when there is a clobber of the file during attempt to
 #       download it, do we error out and how?
 
+
+# ............................................................................ #
 # turn on tracing of error, this will bubble up all the error codes
 # basically this allows the ERR trap is inherited by shell functions
 set -o errtrace;
@@ -31,7 +34,6 @@ set -o pipefail;
 TMP_SCRIPT_NAME=$(basename "${0}");
 # get full path of the script folder
 TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
-
 # artly plugin display name, extracted from environment otherwise set to ""
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
 
@@ -239,7 +241,7 @@ Options:
 Notes:
 
     Currently aptly 0.9.7 is unable to publish a repository if all the debian
-    packages are architecture independent (a.k.k \"all\" architecture)
+    packages are architecture independent (a.k.a \"all\" architecture)
     See: https://github.com/smira/aptly/issues/165
     As such we have to force specifying architecture and defaulting it to
     VERY common ones.
@@ -269,8 +271,8 @@ function trap_handler {
     local frame_expression;
     local indent="";
 
-    # clear ERR trap so we do not hit recusions
-    trap - ERR EXIT INT TERM;
+    # clear all traps so we do not hit recusions
+    clear_error_traps;
 
     if [ "${error_signal}" == "ERR" ]; then
         # print out error code
@@ -314,6 +316,14 @@ folders as needed.">&2;
             remove_temporary_directories_and_files;
         fi
     fi
+}
+
+
+# ............................................................................ #
+# clear all (ERR EXIT INT TERM) error traps
+function clear_error_traps {
+    # clear all traps so we do not hit recusions
+    trap - ERR EXIT INT TERM;
 }
 
 
@@ -431,6 +441,7 @@ function process_script_arguments {
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
         # print usage to stderr since no valid command was provided
+        clear_error_traps;
         usage 1>&2;
         echo "No arguments given">&2;
         exit 2;
@@ -572,6 +583,7 @@ ${processed_args}" 1;
                 # there should not be any trailing params
                 if [ "${#}" -gt 0 ]; then
                     # print usage to stderr since no valid command was provided
+                    clear_error_traps;
                     usage 1>&2;
                     echo "Unknown arguments(s) '$@' given">&2;
                     exit 2;
@@ -583,7 +595,8 @@ ${processed_args}" 1;
                 ;;
 
             -*)
-                # print usage to stderr since no valid command was provided
+                # print usage to stderr since unknow arguments were given
+                clear_error_traps;
                 usage 1>&2;
                 echo "Unknown argument(s) '${1}' given.">&2;
                 exit 2;
@@ -591,6 +604,7 @@ ${processed_args}" 1;
 
             *)
                 # print usage to stderr since no valid command was provided
+                clear_error_traps;
                 usage 1>&2;
                 echo "No arguments given.">&2;
                 exit 2;
