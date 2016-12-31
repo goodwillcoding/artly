@@ -7,6 +7,7 @@
 #
 # ########################################################################### #
 
+TMP_PROGRAM_VERSION="0.2";
 
 # ............................................................................ #
 # turn on tracing of error, this will bubble up all the error codes
@@ -29,6 +30,8 @@ TMP_SCRIPT_NAME=$(basename "${0}");
 TMP_SCRIPT_FOLDER="$(cd $(dirname $0); pwd)";
 # artly plugin display name, extracted from environment otherwise set to ""
 ARTLY_PLUGIN=${ARTLY_PLUGIN:-""}
+# aptly script path
+ARTLY_SCRIPT_PATH="${ARTLY_SCRIPT_PATH:-}";
 
 
 # ........................................................................... #
@@ -61,6 +64,7 @@ TMP_OPTION_VERBOSE=0;
 TMP_OPTION_QUIET=0;
 TMP_OPTION_NO_COLOR=0;
 TMP_OPTION_DEBUG=0;
+TMP_OPTION_VERSION=0;
 
 # verbosity
 TMP_RM_VERBOSITY="";
@@ -194,6 +198,9 @@ Options:
         not deleted after the script is done so it can be used for inspection.
         Also turn on --verbose/-b option.
 
+    --version
+        Print version.
+
     -h, --help
         show help for this script.
 ";
@@ -296,6 +303,9 @@ function begin {
     # process script arguments
     process_script_arguments "$@";
 
+    # run script arguments (--version for example)
+    maybe_run_script_arguments;
+
     # validate script arguments and set default
     validate_and_default_arguments;
 
@@ -373,7 +383,8 @@ function process_script_arguments {
     short_args="o: s: h: a: e: n: t: u: k: K: p: S: v q h";
     long_args+="output-folder: source-folder: name: title: url: ";
     long_args+="public-key-url: key-server-keyid: package: style: recreate ";
-    long_args+="machine-readable  work-folder: verbose quiet debug help";
+    long_args+="machine-readable  work-folder: verbose quiet debug version ";
+    long_args+="help";
 
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
@@ -384,15 +395,21 @@ function process_script_arguments {
         exit 2;
     fi
 
-    processed_args=$(get_getopt "${short_args}" "${long_args}" "$@") || \
-        abort "Could not process options specified on command line
-${processed_args}" 1;
+    # process the arguments, if failed then print out all unknown arguments
+    # and exit with code 2
+    processed_args=$(get_getopt "${short_args}" "${long_args}" "$@") \
+    || {
+        clear_error_traps;
+        echo "Unknown argument(s) given: ${processed_args}"; \
+        exit 2;
+       }
 
+    # set the processed arguments into the $@
     eval set -- "${processed_args}";
 
     # go over the arguments
     while [ $# -gt 0 ]; do
-        case "$1" in
+        case "${1}" in
 
             # store output folder path
             --output-folder | -i)
@@ -484,21 +501,27 @@ ${processed_args}" 1;
                 TMP_OPTION_DEBUG=1;
                 ;;
 
+            # store version flag
+            --version)
+                TMP_OPTION_VERSION=1;
+                ;;
+
             # show usage and quit with code 0
             --help | -h)
                 usage;
                 exit 0;
                 ;;
 
+            # argument end marker
             --)
-                # is the end marker from getopt
+                # pop the marker of the stack
                 shift;
-                # there should not be any trailing params
+                # there should not be any trailing arguments
                 if [ "${#}" -gt 0 ]; then
-                    # print usage to stderr since no valid command was provided
+                    # print usage to stderr exit with code 2
                     clear_error_traps;
                     usage 1>&2;
-                    echo "Unknown arguments(s) '$@' given">&2;
+                    echo "Unknown arguments(s) given: ${@}">&2;
                     exit 2;
                 else
                     # if it 0 then break the loop, so the shift at the end
@@ -507,11 +530,12 @@ ${processed_args}" 1;
                 fi
                 ;;
 
+            # unknown argument: anything that starts with -
             -*)
-                # print usage to stderr since no valid command was provided
+                # print usage to stderr exit with code 2
                 clear_error_traps;
                 usage 1>&2;
-                echo "Unknown argument(s) '${1}' given.">&2;
+                echo "Unknown argument(s) given: ${1}">&2;
                 exit 2;
                 ;;
 
@@ -526,6 +550,45 @@ ${processed_args}" 1;
         shift;
     done
 
+
+}
+
+
+# ............................................................................ #
+# run functionality specific only to some arguments.
+# these are independent arguments not specific to rest of scrip functionality
+# (for example, --version)
+function maybe_run_script_arguments {
+
+    # check if asked to print version
+    if [ "${TMP_OPTION_VERSION}" -eq 1 ]; then
+        print_version;
+        exit;
+    fi
+
+}
+
+
+# ............................................................................ #
+# print out version
+function print_version {
+
+    local artly_arguments;
+
+    if [ "${TMP_OPTION_MACHINE_READABLE}" -eq 1 ]; then
+        echo "artly-document-debian-repository-version:${TMP_PROGRAM_VERSION}";
+        artly_arguments="--machine-readable";
+    else
+        echo "Artly Document Debian Repository version: ${TMP_PROGRAM_VERSION}";
+        artly_arguments="";
+    fi
+
+    # print out artly version if the script was run as an Artly plugin
+    if [ "${ARTLY_SCRIPT_PATH}" != "" ]; then
+        "${ARTLY_SCRIPT_PATH}" \
+            ${artly_arguments} \
+            --version;
+    fi
 
 }
 

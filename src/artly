@@ -6,6 +6,7 @@
 #
 # ########################################################################### #
 
+TMP_PROGRAM_VERSION="0.2";
 
 # ............................................................................ #
 # turn on tracing of error, this will bubble up all the error codes
@@ -20,6 +21,7 @@ set -o pipefail;
 # debugging
 #set -o xtrace;
 
+
 # ............................................................................ #
 # get script name
 TMP_SCRIPT_NAME=$(basename "${0}");
@@ -30,14 +32,29 @@ TMP_SCRIPT_PATH="${0}";
 # path to artly core folder
 TMP_ARTLY_CORE_FOLDER_PATH="";
 
+# machine output flag
+TMP_OPTION_MACHINE_READABLE=0;
+# version flag
+TMP_OPTION_VERSION=0;
+# packages
+TMP_OPTION_PACKAGES="";
+
+declare -A TMP_COMMANDS=(\
+    ["make-key"]="artly-make-key.sh" \
+    ["make-debian-repository"]="artly-make-debian-repository.sh" \
+    ["document-debian-repository"]="artly-document-debian-repository.sh" \
+    ["publish-github-pages"]="artly-publish-github-pages.sh" \
+)
+
 
 # ............................................................................ #
 # print script usage
 function usage {
     echo "\
-Artly - automated repository tool
+Artly - Automated Repository Tool
 
-Usage: ${TMP_SCRIPT_NAME} [OPTIONS] <COMMAND> [COMMAND OPTIONS]
+Usage: ${TMP_SCRIPT_NAME} <COMMAND> [COMMAND OPTIONS]
+       ${TMP_SCRIPT_NAME} <OPTIONS>
 
 Get help for any given command using: ${TMP_SCRIPT_NAME} <COMMAND> --help
 
@@ -61,13 +78,17 @@ Commands:
 
 Options:
 
-    --debian-packages
-        Print \"apt-get install\" with all prerequisite system packages
-        required to run Artly on Debian.
+    --prerequisites <distro>
+        Print out an install line specific to the distribution.
 
-    --ubuntu-packages
-        Print \"apt-get install\" with all prerequisite system packages
-        required to run Artly on Ubuntu.
+        Supported distributions
+            - ubuntu: print out 'sudo apt-get' install line.
+
+    --machine-readable
+        Optional, print out colon separated output.
+
+    --version
+        Print version.
 
     -h, --help
         Print this usage.
@@ -86,96 +107,13 @@ function begin {
     check_commands;
 
     # process script arguments
-    process_script_commands_and_arguments "$@";
+    process_and_maybe_run_script_command "$@";
 
-}
+    # process script arguments
+    process_script_arguments "$@";
 
-
-# ........................................................................... #
-# get script commands and argument and process them
-function process_script_commands_and_arguments {
-
-    local script_command;
-
-    # if no arguments given print usage
-    if [ $# -eq 0 ]; then
-        # print usage to stderr since no valid command was provided
-        usage 1>&2;
-        echo "No command or arguments given">&2;
-        exit 2;
-    fi
-
-    # get the script command
-    script_command="${1}";
-    shift;
-
-    # run specific commands based on each command
-    case "${script_command}" in
-
-        make-key)
-             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
-             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-make-key.sh" "$@";
-             exit;
-            ;;
-
-        make-debian-repository)
-             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
-             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-make-debian-repository.sh" "$@";
-             exit;
-            ;;
-
-        document-debian-repository)
-             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
-             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-document-debian-repository.sh" "$@";
-             exit;
-             ;;
-
-        publish-github-pages)
-             ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
-             "${TMP_ARTLY_CORE_FOLDER_PATH}/artly-publish-github-pages.sh" "$@";
-             exit;
-             ;;
-
-        --ubuntu-packages)
-            ubuntu_packages;
-            exit;
-            ;;
-
-        --help | -h | help)
-            usage;
-            exit;
-            ;;
-
-        --)
-            # is the end marker from getopt
-            shift;
-            # there should not be any trailing params
-            if [ "${#}" -gt 0 ]; then
-                # print usage to stderr since no valid command was provided
-                usage 1>&2;
-                echo "Unknown command or arguments(s) '$@' given">&2;
-                exit 2;
-            else
-                # if it 0 then break the loop, so the shift at the end
-                # of the for loop did not cause an error
-                break;
-            fi
-            ;;
-
-        -*)
-            # print usage to stderr since no valid command was provided
-            usage 1>&2;
-            echo "Unknown command or argument(s) '${1}' given.">&2;
-            exit 2;
-            ;;
-
-        *)
-            # print usage to stderr since no valid command was provided
-            usage 1>&2;
-            echo "No command or argument given">&2;
-            exit 2;
-            ;;
-    esac;
+    # run script arguments
+    maybe_run_script_arguments;
 
 }
 
@@ -194,11 +132,220 @@ function check_commands {
 }
 
 
+# ........................................................................... #
+# get script commands and argument and process them
+function process_and_maybe_run_script_command {
+
+    local command_or_argument;
+    local script_command;
+    local plugin_script;
+
+    # if no arguments given print usage
+    if [ $# -eq 0 ]; then
+        # print usage to stderr since no valid command was provided
+        usage 1>&2;
+        echo "No command or arguments given">&2;
+        exit 2;
+    fi
+
+    # get possible command or argument (first values)
+    command_or_argument="${1}";
+
+    # check if the this is a command by seeing if it exists in TMP_COMMANDS
+    # and if so run that command
+    if [ ${TMP_COMMANDS[${command_or_argument}]+_} ]; then
+        # record the command
+        script_command="${command_or_argument}";
+        # remove it from the stack, so the rest of the arguments can be passed
+        # on to the command script
+        shift;
+
+        # get the plugin script that corresponds to this command
+        plugin_script=${TMP_COMMANDS["${script_command}"]};
+
+        # run the plugin script
+        ARTLY_PLUGIN="${TMP_SCRIPT_NAME} ${script_command}" \
+        ARTLY_SCRIPT_PATH="${TMP_SCRIPT_PATH}" \
+            "${TMP_ARTLY_CORE_FOLDER_PATH}/${plugin_script}" "$@";
+        exit;
+    else
+        # otherwise, check if the command_or_argument starts with either
+        # '-'' or '--' and if does then we leave this function so arguments
+        # can be evaluated at a later time
+        #
+        # alternatively, if the command_or_argument starts with neither
+        # show usage and exit out with code 2 and print "Unknown command given"
+        # to stderr
+        case "${command_or_argument}" in
+            # this is an argument, return 0
+            -*| --*)
+                return 0;
+                ;;
+
+            *)
+                # print usage to stderr since no valid command was provided
+                usage 1>&2;
+                echo "Unknown command given: ${command_or_argument}">&2;
+                exit 2;
+                ;;
+        esac
+
+    fi
+
+}
+
+
+# ........................................................................... #
+# get script commands and argument and process them
+function process_script_arguments {
+
+    local short_args;
+    local long_args="";
+    local processed_args;
+
+    short_args="h";
+    long_args+="prerequisites: machine-readable version help";
+
+    # if no arguments given print usage
+    if [ $# -eq 0 ]; then
+        # print usage to stderr since no valid command was provided
+        usage 1>&2;
+        echo "No arguments given">&2;
+        exit 2;
+    fi
+
+    # process the arguments, if failed then print out all unknown arguments
+    # and exit with code 2
+    processed_args=$(get_getopt "${short_args}" "${long_args}" "$@") \
+    || {
+        echo "Unknown argument(s) given: ${processed_args}"; \
+        exit 2;
+       }
+
+    # set the processed arguments into the $@
+    eval set -- "${processed_args}";
+
+    # go over the arguments
+    while [ $# -gt 0 ]; do
+        case "${1}" in
+
+            # store prerequisite value
+            --prerequisites)
+                TMP_OPTION_PACKAGES="${2}";
+                shift;
+                ;;
+
+            # store machine readable flag
+            --machine-readable)
+                TMP_OPTION_MACHINE_READABLE=1;
+                ;;
+
+            # store version flag
+            --version)
+                TMP_OPTION_VERSION=1;
+                ;;
+
+            # show usage and quit with code 0
+            --help | -h | help)
+                usage;
+                exit 0;
+                ;;
+
+            # argument end marker
+            --)
+                # pop the marker of the stack
+                shift;
+                # there should not be any trailing arguments
+                if [ "${#}" -gt 0 ]; then
+                    # print usage to stderr exit with code 2
+                    usage 1>&2;
+                    echo "Unknown positional arguments(s) given: ${@}">&2;
+                    exit 2;
+                else
+                    # if it 0 then break the loop, so the shift at the end
+                    # of the for loop did not cause an error
+                    break;
+                fi
+                ;;
+
+            # unknown argument: anything that starts with -
+            -*)
+                # print usage to stderr since no valid command was provided
+                usage 1>&2;
+                echo "Unknown argument(s) given: ${@}">&2;
+                exit 2;
+                ;;
+
+            *)
+                # print usage to stderr since no valid command was provided
+                usage 1>&2;
+                echo "No argument given">&2;
+                exit 2;
+                ;;
+        esac;
+        shift;
+    done;
+
+}
+
+
 # ............................................................................ #
-# ubuntu packages requirewd by artly
-function ubuntu_packages {
-    echo "apt-get install coreutils findutils sed gnupg wget aptly jq haveged \
-git";
+function maybe_run_script_arguments {
+
+    # check if asked to print packages
+    if [ "${TMP_OPTION_PACKAGES}" != "" ]; then
+        print_prerequisites;
+        exit;
+    fi
+
+    # check if asked to print version
+    if [ "${TMP_OPTION_VERSION}" -eq 1 ]; then
+        print_version;
+        exit;
+    fi
+
+    # check if only given --machine-readable
+    if [ "${TMP_OPTION_MACHINE_READABLE}" -eq 1 ]; then
+        echo "Nothing print in machine readable manner";
+        exit 0;
+    fi
+
+}
+
+
+
+# ............................................................................ #
+# print out prerequisites of the specific distribution
+function print_prerequisites {
+
+    local packages;
+
+    packages="coreutils findutils sed gnupg wget aptly jq haveged git";
+
+    # lower case TMP_OPTION_PACKAGES when checking
+    if [ "${TMP_OPTION_PACKAGES,,}" == "ubuntu" ]; then
+        if [ "${TMP_OPTION_MACHINE_READABLE}" -eq 1 ]; then
+            echo "prerequisite-packages:${packages}";
+        else
+            echo "apt-get install ${packages}";
+        fi
+    else
+        echo "Unsupport distribution">&2;
+        exit 1;
+    fi
+}
+
+
+
+# ............................................................................ #
+# print out version
+function print_version {
+
+    if [ "${TMP_OPTION_MACHINE_READABLE}" -eq 1 ]; then
+        echo "artly-version:${TMP_PROGRAM_VERSION}";
+    else
+        echo "Artly version: ${TMP_PROGRAM_VERSION}";
+    fi
 }
 
 
@@ -226,6 +373,7 @@ function _find_core_folder {
 # TMP_ARTLY_CORE_FOLDER_PATH set BEFORE 'begin' runs by _find_core_folder
 # because we need to find the core for utils.sh (and all other artly commands)
 TMP_ARTLY_CORE_FOLDER_PATH="$(_find_core_folder)";
+
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
 # import utils.sh

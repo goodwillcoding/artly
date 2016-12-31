@@ -43,6 +43,7 @@ function get_getopt {
 
     local short_opts=${1};
     local long_opts=${2};
+    local getopt_error_message;
     shift 2;
 
     local opts="";
@@ -51,8 +52,20 @@ function get_getopt {
     # return code, overwriting the getopt one
     opts=$(getopt -o "${short_opts}" -l "${long_opts}" -- "$@" 2>&1);
     if [ $? != 0 ]; then
-       echo -e "$opts" | head -n -1 | sed 's/getopt: /    /';
-       return 1;
+        # strip out header text for unrecognized and invalid options
+        # and replace it with our own arguments text
+        # strip out the single quotes surronding each quote
+        getopt_error_message=$(\
+            echo "$opts" \
+            | head -n -1 \
+            | sed "s/getopt: unrecognized option '//" \
+            | sed "s/getopt: invalid option -- '/-/" \
+            | sed "s/'$//" \
+            | sed "s/\n//"
+        );
+        # replace newlines with spaces
+        echo $(echo "${getopt_error_message}");
+        return 1;
 
     fi
 
