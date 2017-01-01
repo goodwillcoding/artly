@@ -575,6 +575,7 @@ function print_version {
             ${artly_arguments} \
             --version;
     fi
+
 }
 
 
