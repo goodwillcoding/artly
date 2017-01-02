@@ -50,7 +50,7 @@ BUILD_FOLDER = $(CURDIR)/build
 # output folder
 OUTPUT_FOLDER = $(CURDIR)/output
 # source archive created by dist
-SOURCE_ARCHIVE_FILE = $(OUTPUT_FOLDER)/$(PACKAGE_NAME)_$(VERSION).tar.gz
+SOURCE_ARCHIVE_FILE = $(OUTPUT_FOLDER)/$(PACKAGE_NAME)-$(VERSION).tar.gz
 
 # ........................................................................... #
 # https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
