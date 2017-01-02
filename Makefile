@@ -42,11 +42,11 @@ LATEST_STABLE_TAG := $(shell git tag -l "*.*.*" --sort=-v:refname | head -n 1 ||
 
 
 # ........................................................................... #
+ARTLY_LIBDIR=$(DESTDIR)$(libdir)/artly
 # build date
 BUILD_DATE := $(shell date +"%Y-%m-%d %R %Z %z")
 # build folder
 BUILD_FOLDER = $(CURDIR)/build
-
 # output folder
 OUTPUT_FOLDER = $(CURDIR)/output
 # source archive created by dist
@@ -71,7 +71,7 @@ all: ;
 # ........................................................................... #
 help:
 	# Commands:
-	# make all => deps verify build
+	# make all - ???
 	# make about - show information about package (name, version, git info)
 	#
 	# Development commands:
@@ -80,7 +80,7 @@ help:
 	#
 	# Packaging commands
 	# make packaging-dependencies - install packaging dependencies
-	# make xenial-packages - build packages for debian
+	# make ubuntu-xenial-packages - build packages for debian
 	#
 	# Deployment commands:
 	# make publish - publish packages
@@ -126,27 +126,27 @@ installdirs:
 
 	@# create lib/artly
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
-	  $(DESTDIR)$(libdir)/artly
+	  $(ARTLY_LIBDIR)
 
 	@# create lib/artly/core
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(DESTDIR)$(libdir)/artly/core
+	  $(ARTLY_LIBDIR)/core
 
 	@# create lib/artly/core/_static
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(DESTDIR)$(libdir)/artly/core/_static
+	  $(ARTLY_LIBDIR)/core/_static
 
 	@# create lib/artly/core/_static/css
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(DESTDIR)$(libdir)/artly/core/_static/css
+	  $(ARTLY_LIBDIR)/core/_static/css
 
 	@# create lib/artly/core/_static/fonts
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(DESTDIR)$(libdir)/artly/core/_static/fonts
+	  $(ARTLY_LIBDIR)/core/_static/fonts
 
 
 # ........................................................................... #
@@ -156,19 +156,19 @@ install: installdirs
 	install \
 	  --mode 755 \
 	  src/core/artly-*.sh \
-	  $(DESTDIR)$(libdir)/artly/core
+	  $(ARTLY_LIBDIR)/core
 
 	@# install artly utils library
 	install \
 	  --mode 644 \
 	  src/core/utils.sh \
-	  $(DESTDIR)$(libdir)/artly/core
+	  $(ARTLY_LIBDIR)/core
 
 	@# install artly top level wrapper script
 	install \
 	  --mode 755 \
 	  src/artly \
-	  $(DESTDIR)$(libdir)/artly
+	  $(ARTLY_LIBDIR)
 
 	@# create artly top wrapper bindir to libdir RELATIVE symlink
 	@# (basically: /usr/bin/artly -> ../lib/artly/artly)
@@ -176,20 +176,20 @@ install: installdirs
 	  --force \
 	  --symbolic \
 	  --relative \
-	  $(DESTDIR)$(libdir)/artly/artly \
+	  $(ARTLY_LIBDIR)/artly \
 	  $(DESTDIR)$(bindir)/artly
 
 	@# install artly _static css assets
 	install \
 	  --mode 644 \
 	  src/core/_static/css/* \
-	  $(DESTDIR)$(libdir)/artly/core/_static/css
+	  $(ARTLY_LIBDIR)/core/_static/css
 
 	@# install artly _static font  assets
 	install \
 	  --mode 644 \
 	  src/core/_static/fonts/* \
-	  $(DESTDIR)$(libdir)/artly/core/_static/fonts
+	  $(ARTLY_LIBDIR)/core/_static/fonts
 
 # ........................................................................... #
 uninstall:
@@ -226,7 +226,7 @@ dist:
 		--directory "$(CURDIR)" \
 		Makefile \
 		README.rst \
-		LICENSE.txt \
+		LICENSE.rst \
 		CHANGES.rst \
 		DISCLAIMER.rst \
 		src/
@@ -242,15 +242,15 @@ package-dependencies: build-deps
 
 
 # ........................................................................... #
-xenial-packages: dist
+ubuntu-xenial-packages: dist
 
 	mkdir \
 	  --parents \
-	  $(BUILD_FOLDER)/xenial
+	  $(BUILD_FOLDER)/ubuntu/xenial
 
 	cp \
 	  $(SOURCE_ARCHIVE_FILE) \
-	  $(BUILD_FOLDER)/xenial
+	  $(BUILD_FOLDER)/ubuntu/xenial
 
 
 # ........................................................................... #
