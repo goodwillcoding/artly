@@ -1,7 +1,9 @@
 # artly cruft
-/tmp
 /README.html
 /CHANGES.html
+/tmp
+/output
+/build
 
 # sublime cruft
 /*.sublime-*
