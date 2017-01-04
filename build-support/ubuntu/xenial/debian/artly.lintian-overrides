@@ -1,0 +1,11 @@
+# See dh_lintian(1)
+#   http://www.debian.org/doc/manuals/maint-guide/dother.en.html#lintian
+# cut and paste the lintian(1) outputs without leading "E: ", "W: ", ...
+
+# not an official debian packages so does not close any ITP bugs
+artly: new-package-should-close-itp-bug
+# have not gotten around to manpage yet
+artly: binary-without-manpage usr/bin/artly
+# file is "sourced" and does not need to be executable
+artly: script-not-executable usr/lib/artly/core/utils.sh
+

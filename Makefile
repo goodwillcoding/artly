@@ -18,8 +18,27 @@
 # ........................................................................... #
 # set explicit shell
 SHELL = /usr/bin/env bash
-# get the automake libdire so we can use mkinstalldirs
+
+# check if automake exist, because we need it for mkinstalldirs
+# TODO: really need proper autoconf/automake there
+ifneq ($(shell which automake 1>/dev/null 2>/dev/null; echo $$?), 0)
+    # note: $(error) is indented by spaces, not a tab
+    $(error "Automake is missing, you need to install it")
+endif
+# get the automake libdir so we can use mkinstalldirs
 AUTOMAKE_LIBDIR=$(shell automake --print-libdir)
+
+
+# ........................................................................... #
+# https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
+# GNU style defaul install prefix
+prefix = /usr/local
+# GNU style defaul install exec_prefix
+exec_prefix = $(prefix)
+# GNU style defaul bindir
+bindir = $(exec_prefix)/bin
+# GNU style defaul libdir
+libdir = $(exec_prefix)/lib
 
 
 # ........................................................................... #
@@ -29,6 +48,7 @@ NAME = artly
 PACKAGE_NAME = $(NAME)
 # program and package version
 VERSION := $(shell ./src/artly --version --machine-readable | grep "^artly-version:" | cut -d':' -f2)
+# package name + '-' + version
 PACKAGE_NAME_FULL = $(PACKAGE_NAME)-$(VERSION)
 
 
@@ -42,26 +62,18 @@ LATEST_STABLE_TAG := $(shell git tag -l "*.*.*" --sort=-v:refname | head -n 1 ||
 
 
 # ........................................................................... #
-ARTLY_LIBDIR=$(DESTDIR)$(libdir)/artly
+# destination
+ARTLY_INSTALLATION_LIBDIR = $(DESTDIR)$(libdir)/artly
 # build date
 BUILD_DATE := $(shell date +"%Y-%m-%d %R %Z %z")
 # build folder
 BUILD_FOLDER = $(CURDIR)/build
 # output folder
 OUTPUT_FOLDER = $(CURDIR)/output
+# build support folder
+BUILD_SUPPORT = $(CURDIR)/build-support
 # source archive created by dist
-SOURCE_ARCHIVE_FILE = $(OUTPUT_FOLDER)/$(PACKAGE_NAME)-$(VERSION).tar.gz
-
-# ........................................................................... #
-# https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
-# GNU style defaul install prefix
-prefix = /usr/local
-# GNU style defaul install exec_prefix
-exec_prefix = $(prefix)
-# GNU style defaul bindir
-bindir = $(exec_prefix)/bin
-# GNU style defaul libdir
-libdir = $(exec_prefix)/lib
+SOURCE_ARCHIVE_FILE = $(OUTPUT_FOLDER)/source/$(PACKAGE_NAME)-$(VERSION).tar.gz
 
 
 # ........................................................................... #
@@ -126,27 +138,27 @@ installdirs:
 
 	@# create lib/artly
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
-	  $(ARTLY_LIBDIR)
+	  $(ARTLY_INSTALLATION_LIBDIR)
 
 	@# create lib/artly/core
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(ARTLY_LIBDIR)/core
+	  $(ARTLY_INSTALLATION_LIBDIR)/core
 
 	@# create lib/artly/core/_static
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(ARTLY_LIBDIR)/core/_static
+	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static
 
 	@# create lib/artly/core/_static/css
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(ARTLY_LIBDIR)/core/_static/css
+	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static/css
 
 	@# create lib/artly/core/_static/fonts
 	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
 	  -m 0755 \
-	  $(ARTLY_LIBDIR)/core/_static/fonts
+	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static/fonts
 
 
 # ........................................................................... #
@@ -156,19 +168,19 @@ install: installdirs
 	install \
 	  --mode 755 \
 	  src/core/artly-*.sh \
-	  $(ARTLY_LIBDIR)/core
+	  $(ARTLY_INSTALLATION_LIBDIR)/core
 
 	@# install artly utils library
 	install \
 	  --mode 644 \
 	  src/core/utils.sh \
-	  $(ARTLY_LIBDIR)/core
+	  $(ARTLY_INSTALLATION_LIBDIR)/core
 
 	@# install artly top level wrapper script
 	install \
 	  --mode 755 \
 	  src/artly \
-	  $(ARTLY_LIBDIR)
+	  $(ARTLY_INSTALLATION_LIBDIR)
 
 	@# create artly top wrapper bindir to libdir RELATIVE symlink
 	@# (basically: /usr/bin/artly -> ../lib/artly/artly)
@@ -176,20 +188,20 @@ install: installdirs
 	  --force \
 	  --symbolic \
 	  --relative \
-	  $(ARTLY_LIBDIR)/artly \
+	  $(ARTLY_INSTALLATION_LIBDIR)/artly \
 	  $(DESTDIR)$(bindir)/artly
 
 	@# install artly _static css assets
 	install \
 	  --mode 644 \
 	  src/core/_static/css/* \
-	  $(ARTLY_LIBDIR)/core/_static/css
+	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static/css
 
 	@# install artly _static font  assets
 	install \
 	  --mode 644 \
 	  src/core/_static/fonts/* \
-	  $(ARTLY_LIBDIR)/core/_static/fonts
+	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static/fonts
 
 # ........................................................................... #
 uninstall:
@@ -207,14 +219,17 @@ uninstall:
 
 
 # ........................................................................... #
-dist:
+dist: distclean
 
-	@# make output folder
+	@# make source output folder
 	mkdir \
 		--parents \
-		$(OUTPUT_FOLDER);
+		$(OUTPUT_FOLDER)/source;
 
-	@# create the source archive
+
+	@# create the source archive, preserving permissions and setting owner and
+	@# group to root. In the tarball source code goes into the folder of
+	@# name-version
 	tar \
 		--create \
 		--gzip \
@@ -233,24 +248,94 @@ dist:
 
 
 # ........................................................................... #
-distclean: clean
+distclean:
+
+	@# remove output folder
+	-rm \
+	  --recursive \
+	  --force \
+	  $(OUTPUT_FOLDER)/source
 
 
 # ........................................................................... #
-package-dependencies: build-deps
-	sudo apt-get install debhelper devscripts
+build-dependencies:
+	@# this will currently never work, because we error out at the top of the
+	@# the script
+	sudo apt-get install automake
+
+# ........................................................................... #
+package-dependencies: build-dependencies
+
+	sudo apt-get install debhelper build-essential devscripts equivs
 
 
 # ........................................................................... #
-ubuntu-xenial-packages: dist
+ubuntu-xenial-packages: | clean-ubuntu-xenial-packages dist
 
+	@# create the ubuntu/xenial build folder
 	mkdir \
 	  --parents \
 	  $(BUILD_FOLDER)/ubuntu/xenial
 
+	@# copy the source distribution to build folder of ubuntu/xenial
 	cp \
 	  $(SOURCE_ARCHIVE_FILE) \
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION).orig.tar.gz
+
+	@# extract the source archive into build folder of ubuntu/xenial
+	tar \
+	  --extract \
+	  --gzip \
+	  --touch \
+	  --file $(SOURCE_ARCHIVE_FILE) \
+	  --directory $(BUILD_FOLDER)/ubuntu/xenial
+
+	@# copy the debian/ configuration folder into the extracted folder
+	@# (it was created with a name of $(PACKAGE_NAME_FULL))
+	cp \
+	  --recursive \
+	  $(BUILD_SUPPORT)/ubuntu/xenial/debian \
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME_FULL)
+
+	# build the the package
+	# currently do not sign neither the changes file nor the source package
+	(\
+		cd $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME_FULL); \
+		debuild -uc -us; \
+	)
+
+	@# create the ubuntu/xenial build folder
+	mkdir \
+	  --parents \
+	  $(OUTPUT_FOLDER)/ubuntu/xenial
+
+	@# copy the over debian source, and binary distributions as well as the
+	@# changes file to the output file
+	cp \
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.tar.xz \
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.dsc \
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.orig.tar.gz \
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.deb \
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.changes \
+	  $(OUTPUT_FOLDER)/ubuntu/xenial
+
+
+# ........................................................................... #
+clean-ubuntu-xenial-packages:
+
+	@# remove the build folder
+	@# use --force for when ubuntu/xenial does not exist
+	-rm \
+	  --recursive \
+	  --force \
 	  $(BUILD_FOLDER)/ubuntu/xenial
+
+	@# remove the build folder
+	@# use --force for when ubuntu/xenial does not exist
+	-rm \
+	  --recursive \
+	  --force \
+	  $(OUTPUT_FOLDER)/ubuntu/xenial
 
 
 # ........................................................................... #

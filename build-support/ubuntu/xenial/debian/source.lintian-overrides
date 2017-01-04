@@ -1,0 +1,6 @@
+# See dh_lintian(1)
+# cut and paste the lintian(1) outputs without leading "E: ", "W: ", ...
+
+# bug in lintian, does not accomodate blocks with same license but different
+# copyright
+artly source: dep5-copyright-license-name-not-unique

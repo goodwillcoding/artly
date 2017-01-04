@@ -1,0 +1,21 @@
+Source: artly
+Section: utils
+Priority: extra
+Maintainer: goodwillcoding <artly@example.com>
+Build-Depends: debhelper (>=9), devscripts, automake
+Standards-Version: 3.9.7
+Homepage: https://github.com/goodwillcoding/artly
+Vcs-Git: https://github.com/goodwillcoding/artly.git
+Vcs-Browser: https://github.com/goodwillcoding/artly
+
+Package: artly
+Architecture: all
+Multi-Arch: foreign
+Depends: bash (>=4.0), aptly (>=0.9.7), wget, jq, ${misc:Depends}
+Recommends: git
+Description: Create and publish simple Debian repositories using automation.
+ Created to help humans around some pain points of using Aptly and GPG.
+ Additionally, allows you publish repositories with proper installation
+ instructions and directory listings.
+ .
+ For 'publish-github-pages' command please install Git.
