@@ -266,7 +266,7 @@ build-dependencies:
 # ........................................................................... #
 package-dependencies: build-dependencies
 
-	sudo apt-get install debhelper build-essential devscripts equivs
+	sudo apt-get install debhelper build-essential devscripts
 
 
 # ........................................................................... #
