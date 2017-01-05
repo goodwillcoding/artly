@@ -5,5 +5,9 @@
 /output
 /build
 
+# vagrant cruft
+.vagrant/
+
 # sublime cruft
 /*.sublime-*
+
