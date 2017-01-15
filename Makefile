@@ -19,15 +19,6 @@
 # set explicit shell
 SHELL = /usr/bin/env bash
 
-# check if automake exist, because we need it for mkinstalldirs
-# TODO: really need proper autoconf/automake there
-ifneq ($(shell which automake 1>/dev/null 2>/dev/null; echo $$?), 0)
-    # note: $(error) is indented by spaces, not a tab
-    $(error "Automake is missing, you need to install it")
-endif
-# get the automake libdir so we can use mkinstalldirs
-AUTOMAKE_LIBDIR=$(shell automake --print-libdir)
-
 
 # ........................................................................... #
 # https://www.gnu.org/prep/standards/html_node/Directory-Variables.html#Directory-Variables
@@ -40,6 +31,10 @@ bindir = $(exec_prefix)/bin
 # GNU style defaul libdir
 libdir = $(exec_prefix)/lib
 
+# build support folder
+BUILD_SUPPORT = $(CURDIR)/build-support
+BUILD_SUPPORT_BIN = $(BUILD_SUPPORT)/bin
+
 
 # ........................................................................... #
 # program name
@@ -48,8 +43,6 @@ NAME = artly
 PACKAGE_NAME = $(NAME)
 # program and package version
 VERSION := $(shell ./src/artly --version --machine-readable | grep "^artly-version:" | cut -d':' -f2)
-# package name + '-' + version
-PACKAGE_NAME_FULL = $(PACKAGE_NAME)-$(VERSION)
 
 
 # ........................................................................... #
@@ -67,11 +60,9 @@ ARTLY_INSTALLATION_LIBDIR = $(DESTDIR)$(libdir)/artly
 # build date
 BUILD_DATE := $(shell date +"%Y-%m-%d %R %Z %z")
 # build folder
-BUILD_FOLDER = $(CURDIR)/build
+BUILD_FOLDER = $(CURDIR)/_build
 # output folder
-OUTPUT_FOLDER = $(CURDIR)/output
-# build support folder
-BUILD_SUPPORT = $(CURDIR)/build-support
+OUTPUT_FOLDER = $(CURDIR)/_output
 # source archive created by dist
 SOURCE_ARCHIVE_FILE = $(OUTPUT_FOLDER)/source/$(PACKAGE_NAME)-$(VERSION).tar.gz
 
@@ -111,7 +102,7 @@ about:
 
 
 # ........................................................................... #
-clean: ;
+clean: distclean clean-ubuntu-xenial-packages
 
 	@# remove build folder
 	-rm \
@@ -132,31 +123,31 @@ clean: ;
 installdirs:
 
 	@# ensure bin and lib dirs are in place
-	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
+	$(BUILD_SUPPORT_BIN)/mkinstalldirs \
 	  $(DESTDIR)$(bindir) \
 	  $(DESTDIR)$(libdir)
 
 	@# create lib/artly
-	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
+	$(BUILD_SUPPORT_BIN)/mkinstalldirs \
 	  $(ARTLY_INSTALLATION_LIBDIR)
 
 	@# create lib/artly/core
-	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
+	$(BUILD_SUPPORT_BIN)/mkinstalldirs \
 	  -m 0755 \
 	  $(ARTLY_INSTALLATION_LIBDIR)/core
 
 	@# create lib/artly/core/_static
-	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
+	$(BUILD_SUPPORT_BIN)/mkinstalldirs \
 	  -m 0755 \
 	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static
 
 	@# create lib/artly/core/_static/css
-	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
+	$(BUILD_SUPPORT_BIN)/mkinstalldirs \
 	  -m 0755 \
 	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static/css
 
 	@# create lib/artly/core/_static/fonts
-	$(AUTOMAKE_LIBDIR)/mkinstalldirs \
+	$(BUILD_SUPPORT_BIN)/mkinstalldirs \
 	  -m 0755 \
 	  $(ARTLY_INSTALLATION_LIBDIR)/core/_static/fonts
 
@@ -236,7 +227,7 @@ dist: distclean
 		--preserve-permissions \
 		--owner 0 \
 		--group 0 \
-		--transform 's|^|$(PACKAGE_NAME_FULL)/|' \
+		--transform 's|^|$(PACKAGE_NAME)-$(VERSION)/|' \
 		--file "$(SOURCE_ARCHIVE_FILE)" \
 		--directory "$(CURDIR)" \
 		Makefile \
@@ -244,6 +235,7 @@ dist: distclean
 		LICENSE.rst \
 		CHANGES.rst \
 		DISCLAIMER.rst \
+		build-support/bin/ \
 		src/
 
 
@@ -258,15 +250,9 @@ distclean:
 
 
 # ........................................................................... #
-build-dependencies:
-	@# this will currently never work, because we error out at the top of the
-	@# the script
-	sudo apt-get install automake
+print-debian-build-dependencies:
 
-# ........................................................................... #
-package-dependencies: build-dependencies
-
-	sudo apt-get install debhelper build-essential devscripts
+	@echo build-essential devscripts debhelper debmake gnupg2
 
 
 # ........................................................................... #
@@ -291,17 +277,18 @@ ubuntu-xenial-packages: | clean-ubuntu-xenial-packages dist
 	  --directory $(BUILD_FOLDER)/ubuntu/xenial
 
 	@# copy the debian/ configuration folder into the extracted folder
-	@# (it was created with a name of $(PACKAGE_NAME_FULL))
+	@# (it was created with name-version format)
 	cp \
 	  --recursive \
 	  $(BUILD_SUPPORT)/ubuntu/xenial/debian \
-	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME_FULL)
+	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)-$(VERSION)
 
-	# build the the package
-	# currently do not sign neither the changes file nor the source package
+	@# build the the package
 	(\
-		cd $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME_FULL); \
-		debuild -uc -us; \
+		cd $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)-$(VERSION); \
+		debuild \
+		  -pgpg2 \
+		  -k$(SIGNERS_GPG_KEYID); \
 	)
 
 	@# create the ubuntu/xenial build folder
@@ -311,7 +298,8 @@ ubuntu-xenial-packages: | clean-ubuntu-xenial-packages dist
 
 	@# copy the over debian source, and binary distributions as well as the
 	@# changes file to the output file
-	cp \
+	install \
+	  --mode 644 \
 	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.tar.xz \
 	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.dsc \
 	  $(BUILD_FOLDER)/ubuntu/xenial/$(PACKAGE_NAME)_$(VERSION)*.orig.tar.gz \

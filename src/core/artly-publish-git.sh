@@ -2,13 +2,13 @@
 
 # ########################################################################### #
 #
-# Publish Repository to GitHub Pages
+# Publish Debian repository to a Git repository
 #
 # ########################################################################### #
 
 TMP_PROGRAM_VERSION="0.2";
 
-# ............................................................................ #
+# ........................................................................... #
 # turn on tracing of error, this will bubble up all the error codes
 # basically this allows the ERR trap is inherited by shell functions
 set -o errtrace;
@@ -48,8 +48,6 @@ TMP_OPTION_REPOSITORY_TITLE="";
 TMP_OPTION_WORK_FOLDER="";
 # machine readable output flag
 TMP_OPTION_MACHINE_READABLE=0;
-# suppress disclaimer
-TMP_OPTION_SUPPRESS_DISCLAIMER=0;
 
 TMP_OPTION_VERBOSE=0;
 TMP_OPTION_QUIET=0;
@@ -67,7 +65,7 @@ TMP_GIT_ADD_VERBOSITY="";
 TMP_GIT_COMMIT_VERBOSITY="";
 TMP_GIT_PUSH_VERBOSITY="";
 # template for the work folder name
-TMP_WORK_FOLDER_NAME_TEMPLATE="/tmp/artly-publish-github-pages.XXXXXXXXXX";
+TMP_WORK_FOLDER_NAME_TEMPLATE="/tmp/artly-publish-git.XXXXXXXXXX";
 
 
 # ........................................................................... #
@@ -83,37 +81,21 @@ function usage {
     fi
 
     echo "\
-${script_display_name} - Publish repository to GitHub Pages.
+${script_display_name} - Publish repository to Git repository.
 
 Usage: ${script_display_name} [OPTIONS]
 
-Publish Debian repository to GitHub Pages by pushing it to the GitHub
-repository that is configured to generate the pages from the master branch.
+Publish Debian repository to a Git repository.
+
+Can be used to push Deboan repositories documented with
+\"document-debian-repository --style 'github-pages'\" to GitHub Pages. If doing
+so on free GitHub.com account and not a private installation please read the
+disclaime included with Artly as well GitHub.com terms of usage.
 
 IMPORTANT:
-   Publishing is a VERY DESTRUCTIVE operations that uses 'git push --force' and
-   wipes out the existing content of git repository and all of it's history.
-
-DISCLAIMER:
-
-  Artly's publish-github-pages tool was built by the author for use with
-  GitHub Enterprise, a paid and self hosted instance of GitHub to which the
-  disclaimer below does not apply.
-
-  While GitHub.com is very generous with allowing hosting of releases of
-  various open source project, usage of GitHub Pages in this manet though
-  similar to GitHub Releases functionality of GitHub Pages is in the grey area.
-
-  By using this tool with GitHub.com, you, not the this tool creator bares all
-  responsibility to GitHub.com.
-
-  Also, your repository is subject to GitHub term of usage for content, usage
-  and bandwidth. If you intend to use it please read following over in detail.
-
-  GitHub Terms of Usage:
-    https://help.github.com/articles/github-terms-of-service/
-  What is GitHub Pages:
-    https://help.github.com/articles/what-is-github-pages/
+   Git operations performed by this script is a DESTRUCTIVE operation that uses
+   'git push --force' and wipes out the existing content of git repository and
+   all of it's history.
 
 Options:
 
@@ -141,15 +123,6 @@ Options:
         Optional, work folder path, needed to generate the repository. By
         default the work folder name is created by mktemp using following
         template \"${TMP_WORK_FOLDER_NAME_TEMPLATE}\".
-
-    --suppress-disclaimer
-        Optional, do not print warning about GitHub.com GitHub Pages.
-
-        IMPORTANT: By using this flag you acknowledge you read the disclaimer
-        that comes bundled with Artly.
-
-        To see the disclaimer run see ${script_display_name} --help or
-        reade DISCLAIMER.rst
 
     -v, --verbose
         Optional, turn on verbose output.
@@ -245,7 +218,7 @@ folders as needed.">&2;
 }
 
 
-# ............................................................................ #
+# ........................................................................... #
 # clear all (ERR EXIT INT TERM) error traps
 function clear_error_traps {
     # clear all traps so we do not hit recusions
@@ -254,7 +227,7 @@ function clear_error_traps {
 
 
 
-# ............................................................................ #
+# ........................................................................... #
 # main entry point, checks commands and processes arguments and commands
 # no traps here, since we do not need arror reporting
 # :{1}: command or option to run
@@ -336,8 +309,9 @@ function process_script_arguments {
 
     short_args="s: u: n: a: e: t: v q h";
     long_args+="source-folder: git-uri: name: author: email: title: ";
-    long_args+="machine-readable suppress-disclaimer work-folder: verbose ";
-    long_args+="quiet debug version help";
+    long_args+="machine-readable work-folder: verbose quiet debug version";
+    long_args+="help";
+
 
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
@@ -397,11 +371,6 @@ function process_script_arguments {
             # store machine readable flag
             --machine-readable)
                 TMP_OPTION_MACHINE_READABLE=1;
-                ;;
-
-            # store the suppress disclaimer flag
-            --suppress-disclaimer)
-                TMP_OPTION_SUPPRESS_DISCLAIMER=1;
                 ;;
 
             # store work folder path
@@ -484,7 +453,7 @@ function process_script_arguments {
 }
 
 
-# ............................................................................ #
+# ........................................................................... #
 # run functionality specific only to some arguments.
 # these are independent arguments not specific to rest of scrip functionality
 # (for example, --version)
@@ -499,17 +468,17 @@ function maybe_run_script_arguments {
 }
 
 
-# ............................................................................ #
+# ........................................................................... #
 # print out version
 function print_version {
 
     local artly_arguments;
 
     if [ "${TMP_OPTION_MACHINE_READABLE}" -eq 1 ]; then
-        echo "artly-publish-github-pages-version:${TMP_PROGRAM_VERSION}";
+        echo "artly-publish-git-version:${TMP_PROGRAM_VERSION}";
         artly_arguments="--machine-readable";
     else
-        echo "Artly Publish Github Pages version: ${TMP_PROGRAM_VERSION}";
+        echo "Artly Publish Git version: ${TMP_PROGRAM_VERSION}";
         artly_arguments="";
     fi
 
@@ -730,12 +699,6 @@ function create_and_configure_working_git_repository {
                 origin \
                 "${TMP_OPTION_REPOSITORY_GIT_URI}";
 
-    # create file to disable Github Page Jekyll generation
-    # this ensures no file is hidden from being published
-    # TODO: this might not be necessary and we might want some files to be
-    #       hidden in the future
-    touch "${TMP_OPTION_WORK_FOLDER}/.nojekyll";
-
 }
 
 
@@ -795,18 +758,6 @@ function print_repository_information {
         log_unquiet "Repository Commit Author :  ${TMP_OPTION_COMMIT_AUTHOR}";
         log_unquiet "Repository Commit Email  :  ${TMP_OPTION_COMMIT_EMAIL}";
         log_unquiet "Repository Title         :  ${TMP_OPTION_REPOSITORY_TITLE}";
-    fi
-
-    # show the disclaimer if it is not suppressed
-    if [ ${TMP_OPTION_SUPPRESS_DISCLAIMER} -eq 0 ]; then
-        cat <<________EOF >&2
-DISCLAIMER
-
-Please read DISCLAIMER regarding usage of this tool with GitHub.com GitHub
-Pages. To see the disclaimer see this script help screen using '--help' or read
-the DISCLAIMER.rst bundled with Artly distribution.
-
-________EOF
     fi
 
 }

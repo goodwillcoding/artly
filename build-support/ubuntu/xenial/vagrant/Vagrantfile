@@ -1,16 +1,31 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+
+# ........................................................................... #
+# TODO: this should be passed in
+# we are in package /<package>/
+vagrant_file_path = File.dirname(__FILE__)
+package_folder_relative_path = "../../../.."
+LOCAL_PACKAGE_FOLDER = File.expand_path(
+                          File.join(vagrant_file_path,
+                                    package_folder_relative_path))
+PACKAGE_FOLDER = "/tmp/artly"
+
+# ........................................................................... #
 Vagrant.configure("2") do |config|
 
   # use bento's xenial boxen
   config.vm.box = "bento/ubuntu-16.04"
 
-  # name it
+  # configure the hostname name
   config.vm.hostname = 'artly-xenial'
-  # artly top level folder is 3 levels up from build-support/ubuntu/xenial
+  # artly top level folder is 4 levels up from build-support/ubuntu/xenial
   # sync it to /tmp/artly
-  config.vm.synced_folder "../../..", "/tmp/artly"
+  config.vm.synced_folder LOCAL_PACKAGE_FOLDER, PACKAGE_FOLDER
+
+  # change the "default" in the virtualbox machine name
+  config.vm.define "artly_xenial" do |artly_xenial| end
 
   # disable audio
   config.vm.provider :virtualbox do |vb|
@@ -21,56 +36,81 @@ Vagrant.configure("2") do |config|
   end
 
   # Provision build tools with a shell script provisioner
-  config.vm.provision "shell", inline: <<-SHELL
+  config.vm.provision :shell do |shell|
+    shell.args = [PACKAGE_FOLDER]
+    shell.inline = <<-__SHELL
+
+PACKAGE_FOLDER="${1}";
+echo "!!! package folder: ${PACKAGE_FOLDER}";
+
 # setup apt-cacher-ng proxy
+echo "!!! setup package proxy cache to http://10.0.2.2:3142"
 cat << EOF > /etc/apt/apt.conf.d/000-apt-cacher-ng-proxy
 Acquire::http::Proxy "http://10.0.2.2:3142";
 EOF
 
-# update apt catalog
-apt-get update
-
-# misc tools: mc, tree emacs
+# update apt index
+echo "!!! updating package index"
 apt-get \
-  install \
-    --yes \
-    mc \
-    tree \
-    emacs-nox
-
-# add debian build tools
-apt-get \
-  install \
-    --yes \
-    build-essential \
-    devscripts \
-    debhelper \
-    debmake \
-    automake
+  --quiet 2 \
+  update;
 
 # pull in latest changes
 # handle grub update
 # https://askubuntu.com/questions/146921/how-do-i-apt-get-y-dist-upgrade-without-a-grub-config-prompt
-unset UCF_FORCE_CONFFOLD
-export UCF_FORCE_CONFFNEW=YES
-ucf --purge /boot/grub/menu.lst
-export DEBIAN_FRONTEND=noninteractive
+echo "!!! updgrading all system packages";
+unset UCF_FORCE_CONFFOLD;
+export UCF_FORCE_CONFFNEW=YES;
+ucf --purge /boot/grub/menu.lst;
+export DEBIAN_FRONTEND=noninteractive;
+# apparently since dpkg has no --quiet or --silent we need to redirect stdout
+# some package installs print to stderr ... so headdesk, suppress it too
 apt-get \
+  --quiet 2 \
   -o Dpkg::Options::="--force-confnew" \
   --fix-broken \
-  --show-upgraded \
   --yes \
-  dist-upgrade
+  dist-upgrade \
+1>/dev/null \
+2>/dev/null;
+
+# misc tools: mc, tree emacs
+echo "!!! installing misc. tools"
+apt-get \
+  --quiet 2 \
+  install \
+    --yes \
+    mc \
+    tree \
+    emacs-nox \
+1>/dev/null;
+
+# add debian build tools
+echo "!!! installing debian build dependencies"
+# some package install print to stderr ... so headdesk, suppress it too
+apt-get \
+  --quiet 2 \
+  install \
+    --yes \
+    $(cd "${PACKAGE_FOLDER}"; \
+      make print-debian-build-dependencies) \
+1>/dev/null \
+2>/dev/null;
 
 # autoremove all unnecessary packages
+echo "!!! removing unused packages"
 apt-get \
+  --quiet 2 \
   --yes \
-  autoremove
+  autoremove;
 
 # reboot
+echo "!!! rebooting"
 reboot
 
-  SHELL
+__SHELL
+
+  end
 
   # check if this box has an update
   config.vm.box_check_update = true

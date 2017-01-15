@@ -2,8 +2,8 @@
 /README.html
 /CHANGES.html
 /tmp
-/output
-/build
+/_output
+/_build
 
 # vagrant cruft
 .vagrant/

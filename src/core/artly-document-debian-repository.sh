@@ -53,6 +53,8 @@ TMP_OPTION_REPOSITORY_SERVER_KEYID="";
 TMP_OPTION_REPOSITORY_PACKAGE="";
 # style for repository documentation (html, github-pages, etc)
 TMP_OPTION_STYLE="";
+# suppress disclaimer
+TMP_OPTION_SUPPRESS_DISCLAIMER=0;
 # recreate the output folder flag
 TMP_OPTION_RECREATE=0;
 # machine output flag
@@ -168,6 +170,16 @@ Options:
         as a readme as part of the repository. Also, add a note that
         GitHub Pages does support viewing of the files because of unsupported
         mime-types.
+
+    --suppress-disclaimer
+        Optional, do not print warning about GitHub.com GitHub Pages. The
+        disclaimer only shows when --style 'github-pages' is specified.
+
+        IMPORTANT: By using this flag you acknowledge you read the disclaimer
+        that comes bundled with Artly.
+
+        To see the disclaimer run see ${script_display_name} --help or
+        reade DISCLAIMER.rst
 
     --machine-readable
         Optional, print out colon separated output. This only prints out
@@ -382,9 +394,9 @@ function process_script_arguments {
 
     short_args="o: s: h: a: e: n: t: u: k: K: p: S: v q h";
     long_args+="output-folder: source-folder: name: title: url: ";
-    long_args+="public-key-url: key-server-keyid: package: style: recreate ";
-    long_args+="machine-readable  work-folder: verbose quiet debug version ";
-    long_args+="help";
+    long_args+="public-key-url: key-server-keyid: package: style: ";
+    long_args+="suppress-disclaimer recreate machine-readable work-folder: ";
+    long_args+="verbose quiet debug version help";
 
     # if no arguments given print usage
     if [ $# -eq 0 ]; then
@@ -463,6 +475,11 @@ function process_script_arguments {
             --style | -S)
                 TMP_OPTION_STYLE="${2}";
                 shift;
+                ;;
+
+            # store the suppress disclaimer flag
+            --suppress-disclaimer)
+                TMP_OPTION_SUPPRESS_DISCLAIMER=1;
                 ;;
 
             # store recreate flag
@@ -1326,16 +1343,16 @@ ____EOF
                         --directory \
                         -1 "${filesystem_item}" \
                     | cut -d' ' -f1);
-                filesystem_item_icon="glyphicon-file"
+                filesystem_item_icon="fa-file"
             elif [ -d "${filesystem_item}" ]; then
                 # folders have no file sizes
                 filesystem_item_size="";
-                filesystem_item_icon="glyphicon-folder-close";
+                filesystem_item_icon="fa-folder";
             else
                 # unknown filesystem items also get no file sizes
                 filesystem_item_size="";
                 # use "?" for unknown file system items
-                filesystem_item_icon="glyphicon-question-sign";
+                filesystem_item_icon="fa-question-circle";
             fi
 
             # create url encoded url
@@ -1346,7 +1363,7 @@ ____EOF
             cat <<____________EOF >> "${index_html_file}"
           <tr>
             <td>
-            <span class="glyphicon ${filesystem_item_icon}"></span>
+            <span class="fa ${filesystem_item_icon}"></span>
               <a href="${link_url}">${item_name}</a>
             </td>
             <td>
@@ -1407,6 +1424,7 @@ function _html_document_beginning_to_file {
   <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
   <title>${title_html}</title>
   <link rel="stylesheet" href="${base_folder}/_static/css/bootstrap.min.css">
+  <link rel="stylesheet" href="${base_folder}/_static/css/fontawesome.css">
 
   <style type="text/css">
     body {
@@ -1439,6 +1457,10 @@ function _html_document_ending_to_file {
     Repository created on: $(date +"%Y-%m-%d %R %Z %z")
   </div>
 </div>
+<br />
+<p class="text-muted text-center">
+  <small>"Font Awesome by Dave Gandy - http://fontawesome.io"</small>
+</p>
 </body>
 </html>
 ____EOF
@@ -1528,6 +1550,10 @@ ________EOF
         _html_document_ending_to_file \
             "${github_readme_file}";
 
+        # create a .nojekyll file to stop Jekyll from hiding any files during
+        # publishing this ensures no file is hidden from being published
+        touch "${TMP_OPTION_WORK_FOLDER}/.nojekyll";
+
     fi
 
 }
@@ -1582,6 +1608,21 @@ function print_repository_information {
         log_unquiet "Repository Package         :  ${TMP_OPTION_REPOSITORY_PACKAGE}";
         log_unquiet "Style                      :  ${TMP_OPTION_STYLE}";
     fi
+
+    # show the disclaimer for 'github-pages' if it is not suppressed
+    if     [ "${TMP_OPTION_STYLE}" == "github-pages" ] \
+        && [ ${TMP_OPTION_SUPPRESS_DISCLAIMER} -eq 0 ]; then
+
+        cat <<________EOF >&2
+DISCLAIMER
+
+Please read DISCLAIMER regarding usage of this tool with GitHub.com GitHub
+Pages. To see the disclaimer see this script help screen using '--help' or read
+the DISCLAIMER.rst bundled with Artly distribution.
+
+________EOF
+    fi
+
 }
 
 

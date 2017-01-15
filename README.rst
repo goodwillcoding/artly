@@ -306,8 +306,9 @@ Publishing the Debian Repository to a Local Apache Server
 Publishing the Debian Repository to GitHub Pages
 ================================================
 
-**Artly** provides a ``publish-github-pages`` command to allow you to easily
-publish to GitHub Pages.
+**Artly** provides a ``publish-git`` command which allows easy push to Git.
+Combined with ``document-debian-repository --style 'github-pages'`` command
+you can generate a repo on GitHub Pages.
 
 1. Login to your GitHub.com account at https://github.com using a browser
 
@@ -316,8 +317,8 @@ publish to GitHub Pages.
    :Warning:
 
        Use a new repository and be aware that every time
-       ``publish-github-pages`` command runs it uses ``git push --force``
-       destroying all the content and the commit history.
+       ``publish-git`` command runs it uses ``git push --force`` destroying all
+       the content and the commit history.
 
    See Official GitHub.com Documentation on creating Github Repositories:
    https://help.github.com/articles/create-a-repo/
@@ -373,7 +374,7 @@ publish to GitHub Pages.
 
    .. code-block:: shell
 
-       $ /tmp/artly_demo/artly/artly publish-github-pages \
+       $ /tmp/artly_demo/artly/artly publish-git \
            --source-folder /tmp/artly_demo/salt16-debian-repository.github \
            --git-uri "git@github.com:${MY_GITHUB_USERNAME}/salt16-debian-repository.git" \
            --author "${MY_GITHUB_USERNAME}" \

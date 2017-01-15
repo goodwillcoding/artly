@@ -50,7 +50,7 @@ Artly
   --work-folder ./tmp.artly-document-debian-repository
 
 
-../src/core/artly-publish-github-pages.sh \
+../src/core/artly-publish-git.sh \
   --source-folder ./documented_repository \
   --git-uri "git@github.com:goodwillcoding/salt16-debian-repository.git" \
   --author "goodwillcoding" \

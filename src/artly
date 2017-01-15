@@ -43,7 +43,7 @@ declare -A TMP_COMMANDS=(\
     ["make-key"]="artly-make-key.sh" \
     ["make-debian-repository"]="artly-make-debian-repository.sh" \
     ["document-debian-repository"]="artly-document-debian-repository.sh" \
-    ["publish-github-pages"]="artly-publish-github-pages.sh" \
+    ["publish-git"]="artly-publish-git.sh" \
 )
 
 
@@ -70,8 +70,8 @@ Commands:
         Generate Debian repository with READMEs containing repository setup
         instructions as well as HTML directory indexes for browsing.
 
-    publish-github-pages
-        Publish repository to GitHub Pages.
+    publish-git
+        Publish Debian repository to a Git repository
 
     help
         Print this usage.
