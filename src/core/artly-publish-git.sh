@@ -43,7 +43,7 @@ TMP_OPTION_COMMIT_AUTHOR="";
 # commiter email
 TMP_OPTION_COMMIT_EMAIL="";
 # repository description to put in readme and the commit message
-TMP_OPTION_REPOSITORY_TITLE="";
+TMP_OPTION_COMMIT_MESSAGE="";
 # work folder
 TMP_OPTION_WORK_FOLDER="";
 # machine readable output flag
@@ -112,8 +112,8 @@ Options:
     -e, --email
         Commit author's email.
 
-    -t, --title
-        Repository title. Used in the commit message.
+    -m, --message
+        Commit message.
 
     --machine-readable
         Optional, print out colon separated output. This only prints out
@@ -307,8 +307,8 @@ function process_script_arguments {
     local long_args="";
     local processed_args;
 
-    short_args="s: u: n: a: e: t: v q h";
-    long_args+="source-folder: git-uri: name: author: email: title: ";
+    short_args="s: u: n: a: e: m: v q h";
+    long_args+="source-folder: git-uri: name: author: email: message: ";
     long_args+="machine-readable work-folder: verbose quiet debug version";
     long_args+="help";
 
@@ -362,9 +362,9 @@ function process_script_arguments {
                 shift;
                 ;;
 
-            # store repository title for the readme
-            --title | -t)
-                TMP_OPTION_REPOSITORY_TITLE="${2}";
+            # store commit message
+            --message | -m)
+                TMP_OPTION_COMMIT_MESSAGE="${2}";
                 shift;
                 ;;
 
@@ -517,9 +517,9 @@ function validate_and_default_arguments {
         abort "Please specify commit email using --email/-e" 1;
     fi
 
-    # check if repository title is specified, if not abort with message
-    if [ "${TMP_OPTION_REPOSITORY_TITLE}" == "" ]; then
-        abort "Please specify repository title using --title/-t" 1;
+    # check if commit message is specified, if not abort with message
+    if [ "${TMP_OPTION_COMMIT_MESSAGE}" == "" ]; then
+        abort "Please specify commit message using --message/-m" 1;
     fi
 
     # create a default work folder using a mktemp and
@@ -725,7 +725,7 @@ function push_repository_upstream {
         commit \
             ${TMP_GIT_COMMIT_VERBOSITY} \
             --all \
-            --message "${TMP_OPTION_REPOSITORY_TITLE} published on \
+            --message "${TMP_OPTION_COMMIT_MESSAGE} published on \
 ${commit_date}";
 
     # force push to the repository so we override it
@@ -752,12 +752,12 @@ function print_repository_information {
         echo "repository-git-uri:${TMP_OPTION_REPOSITORY_GIT_URI}";
         echo "repository-commit-author:${TMP_OPTION_COMMIT_AUTHOR}";
         echo "repository-commit-email:${TMP_OPTION_COMMIT_EMAIL}";
-        echo "repository-title:${TMP_OPTION_REPOSITORY_TITLE}";
+        echo "repository-commit-message:${TMP_OPTION_COMMIT_MESSAGE}";
     else
-        log_unquiet "Repository Git URI       :  ${TMP_OPTION_REPOSITORY_GIT_URI}";
-        log_unquiet "Repository Commit Author :  ${TMP_OPTION_COMMIT_AUTHOR}";
-        log_unquiet "Repository Commit Email  :  ${TMP_OPTION_COMMIT_EMAIL}";
-        log_unquiet "Repository Title         :  ${TMP_OPTION_REPOSITORY_TITLE}";
+        log_unquiet "Repository Git URI        :  ${TMP_OPTION_REPOSITORY_GIT_URI}";
+        log_unquiet "Repository Commit Author  :  ${TMP_OPTION_COMMIT_AUTHOR}";
+        log_unquiet "Repository Commit Email   :  ${TMP_OPTION_COMMIT_EMAIL}";
+        log_unquiet "Repository Commit Message :  ${TMP_OPTION_COMMIT_MESSAGE}";
     fi
 
 }
@@ -769,7 +769,7 @@ if [ -f "${TMP_SCRIPT_FOLDER}/utils.sh" ]; then
     source "${TMP_SCRIPT_FOLDER}/utils.sh"
 else
     echo "
-Could not load required '${TMP_SCRIPT_FOLDER}/utils.sh' module.$
+Could not load required '${TMP_SCRIPT_FOLDER}/utils.sh' module.
 
 " >&2;
     exit 1;

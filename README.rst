@@ -379,7 +379,7 @@ you can generate a repo on GitHub Pages.
            --git-uri "git@github.com:${MY_GITHUB_USERNAME}/salt16-debian-repository.git" \
            --author "${MY_GITHUB_USERNAME}" \
            --email "${MY_GITHUB_USERNAME}@example.com" \
-           --title "Salt 16 Debian Repository"
+           --message "Salt 16 Debian Repository"
 
 7. Publish your Debian repository to GitHub Pages itself.
 
