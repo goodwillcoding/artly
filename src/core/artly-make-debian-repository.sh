@@ -58,7 +58,7 @@ TMP_OPTION_OUTPUT_FOLDER="";
 TMP_OPTION_REPOSITORY_NAME="";
 TMP_OPTION_REPOSITORY_COMPONENT="";
 TMP_OPTION_REPOSITORY_DISTRIBUTION="";
-TMP_SECRET_KEY_FILE="";
+TMP_OPTION_SECRET_KEY_FILE="";
 declare -a TMP_OPTION_PACKAGE_ENTITIES;
 TMP_OPTION_REPOSITORY_ARCHITECTURES="";
 TMP_OPTION_REPOSITORY_LABEL="";
@@ -506,7 +506,7 @@ function process_script_arguments {
 
             # store secret key file path
             --secret-key-file | -k)
-                TMP_SECRET_KEY_FILE="${2}";
+                TMP_OPTION_SECRET_KEY_FILE="${2}";
                 shift;
                 ;;
 
@@ -716,7 +716,7 @@ function validate_and_default_arguments {
     fi
 
     # check if keyfile is specified, if not abort with message
-    if [ "${TMP_SECRET_KEY_FILE}" == "" ]; then
+    if [ "${TMP_OPTION_SECRET_KEY_FILE}" == "" ]; then
         abort "Please specify secret key file using --secret-key-file/-k" 1;
     fi
 
@@ -848,7 +848,7 @@ function log_script_info {
     log_verbose "Repository Distribution  : ${TMP_OPTION_REPOSITORY_DISTRIBUTION}";
     log_verbose "Repository Component     : ${TMP_OPTION_REPOSITORY_COMPONENT}";
     log_verbose "Repository Architectures : ${TMP_OPTION_REPOSITORY_ARCHITECTURES}";
-    log_verbose "Secret Key file          : ${TMP_SECRET_KEY_FILE}";
+    log_verbose "Secret Key file          : ${TMP_OPTION_SECRET_KEY_FILE}";
     log_verbose "Output folder            : ${TMP_OPTION_OUTPUT_FOLDER}";
     log_verbose "Repository Label         : ${TMP_OPTION_REPOSITORY_LABEL}";
     log_verbose "Repository Origin        : ${TMP_OPTION_REPOSITORY_ORIGIN}";
@@ -1213,13 +1213,13 @@ function create_keyrings {
 
     "${TMP_SCRIPT_FOLDER}/artly-make-keyring.sh" \
       --output-folder "${TMP_GPG_HOMEDIR_FOLDER}" \
-      --key-file "${TMP_SECRET_KEY_FILE}" \
+      --key-file "${TMP_OPTION_SECRET_KEY_FILE}" \
       --gpg "${TMP_OPTION_GPG}" \
       --recreate \
       --quiet \
       --machine-readable \
     > "${make_keyring_info_file}" \
-    || abort "failed to create a keyring from key file: ${TMP_SECRET_KEY_FILE}" 1;
+    || abort "failed to create a keyring from key file: ${TMP_OPTION_SECRET_KEY_FILE}" 1;
 
     while read config_line; do
         # get the config key value and value
