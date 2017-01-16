@@ -22,11 +22,37 @@ set -o pipefail;
 # export the gpg key
 #SIGNERS_GPG_KEYID=232243A0C68184A0
 
-SIGNERS_GPG_KEYID=${SIGNERS_GPG_KEYID:-}
+SIGNERS_GPG_KEYID=${SIGNERS_GPG_KEYID:-};
 
 if [ "${SIGNERS_GPG_KEYID}" == "" ]; then
   echo "Please set SIGNERS_GPG_KEYID to a valid key id in the current keyring"
   exit 1;
+fi
+
+# ........................................................................... #
+LOCAL_GPG2_AGENT_EXTRA_SOCKET=${LOCAL_GPG2_AGENT_EXTRA_SOCKET:-};
+
+# get the gpg2 socket on the host machine
+if [ "${LOCAL_GPG2_AGENT_EXTRA_SOCKET}" == "" ]; then
+  TMP_GPG2_AGENT_EXTRA_SOCKET=$(\
+      gpgconf --list-dir \
+      | grep '^agent-extra-socket:' \
+      | cut -d':' -f2) || true;
+
+  if [ "${TMP_GPG2_AGENT_EXTRA_SOCKET}" == "" ]; then
+      echo "\
+Failed to get GPG2 agent-extra-socket using gpgconf, you must have a pre 2.1.13
+GPG2 version. please configure gpg-agent.conf to have extra-socket.
+  Example: extra-socket /home/<user>/.gnupg/S.gpg-agent-extra
+Then export LOCAL_GPG2_AGENT_EXTRA_SOCKET='<path to socket>' before running
+this script.
+
+  Read more here: https://wiki.gnupg.org/AgentForwarding
+";
+    exit 1;
+  else
+    LOCAL_GPG2_AGENT_EXTRA_SOCKET="${TMP_GPG2_AGENT_EXTRA_SOCKET}";
+  fi
 fi
 
 # ........................................................................... #
@@ -35,16 +61,14 @@ SIGNERS_GPG_KEYID_FINGERPRINT=$(\
     --fingerprint \
     --with-colons \
     "${SIGNERS_GPG_KEYID}" \
-  | grep '^fpr:::::::::[0-9ABCDEF]*232243A0C68184A0:' \
+  | grep "^fpr:::::::::[0-9ABCDEF]*${SIGNERS_GPG_KEYID}:" \
   | sed 's/\://g' \
-  | cut -c4- )
+  | cut -c4- ) || true;
 
-# ........................................................................... #
-# get the gpg2 socket on the host machine
-TMP_GPG_AGENT_EXTRA_SOCKET=$(\
-    gpgconf --list-dir \
-    | grep '^agent-extra-socket:' \
-    | cut -d':' -f2)
+if [ "${SIGNERS_GPG_KEYID_FINGERPRINT}" == "" ]; then
+  echo "Failed to get finger print for key: ${SIGNERS_GPG_KEYID}";
+  exit 1;
+fi
 
 
 # ........................................................................... #
@@ -57,10 +81,10 @@ $(gpg-connect-agent reloadagent /bye)";
 
 
 # ........................................................................... #
-echo "aliasing gpg command to gpg2"
-echo "killing all gpg-agent process for the vagrant user"
-echo "removing /home/vagrant/.gnupg"
-echo "creating /home/vagrant/.gnupg"
+echo "vagrant: aliasing gpg command to gpg2"
+echo "vagrant: killing all gpg-agent process for the vagrant user"
+echo "vagrant: removing /home/vagrant/.gnupg"
+echo "vagrant: creating /home/vagrant/.gnupg"
 vagrant ssh \
     --command "\
     echo alias gpg=gpg2 > ~/.bash_aliases; \
@@ -71,10 +95,10 @@ vagrant ssh \
 
 
 # ........................................................................... #
-echo "importing public key of the private key that will be used to sign"
-echo "trusting public key of the private key that will be used to sign"
+echo "vagrant: importing public key of the private key that will be used to sign"
+echo "vagrant: trusting public key of the private key that will be used to sign"
 # kill the agent after import and trust
-gpg \
+gpg2 \
   --armor \
   --export \
   "${SIGNERS_GPG_KEYID}" \
@@ -99,7 +123,7 @@ vagrant ssh \
     make ubuntu-xenial-packages;
   " \
   -- \
-  -R /home/vagrant/.gnupg/S.gpg-agent:"${TMP_GPG_AGENT_EXTRA_SOCKET}"
+  -R /home/vagrant/.gnupg/S.gpg-agent:"${LOCAL_GPG2_AGENT_EXTRA_SOCKET}"
 
 
 
