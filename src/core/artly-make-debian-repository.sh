@@ -420,8 +420,8 @@ function check_commands {
     local current_aptly_version;
     local required_aptly_version;
 
-    # check for bash 4
-    cmd_exists_bash4_or_abort;
+    # check for bash 4 or greater
+    cmd_exists_at_least_bash4_or_abort;
 
     # check gnu getop
     cmd_exists_gnu_getopt_or_abort;

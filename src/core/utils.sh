@@ -178,10 +178,11 @@ function cmds_exists_or_abort_if_none {
 
 # ........................................................................... #
 # check for bash version exists and abort if none of found
-function cmd_exists_bash4_or_abort {
+function cmd_exists_at_least_bash4_or_abort {
 
     cmds_exists_or_abort "bash";
-    if [ "x${BASH_VERSION:0:1}" != "x4" ]; then
+    #if [ "${BASH_VERSION:0:1}" -lt 4 ]; then
+    if ! [ ${BASH_VERSION:0:1} -ge 4 ]; then
         abort "Could not find 'bash' version 4 in your path" 1;
     fi
 }

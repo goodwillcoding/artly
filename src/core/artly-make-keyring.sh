@@ -306,8 +306,8 @@ function begin () {
 # this does not include the python commands we install
 function check_commands {
 
-    # check for bash 4
-    cmd_exists_bash4_or_abort;
+    # check for bash 4 or greater
+    cmd_exists_at_least_bash4_or_abort;
 
     # check gnu getop
     cmd_exists_gnu_getopt_or_abort;

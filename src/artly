@@ -6,7 +6,7 @@
 #
 # ########################################################################### #
 
-TMP_PROGRAM_VERSION="0.2";
+TMP_PROGRAM_VERSION="0.1.2";
 
 # ............................................................................ #
 # turn on tracing of error, this will bubble up all the error codes
@@ -123,8 +123,8 @@ function begin {
 # this does not include the python commands we install
 function check_commands {
 
-    # check for bash 4
-    cmd_exists_bash4_or_abort;
+    # check for bash 4 or greater
+    cmd_exists_at_least_bash4_or_abort;
 
     # check for a whole set of commands
     cmds_exists_or_abort "echo" "basename" "dirname" "readlink";
